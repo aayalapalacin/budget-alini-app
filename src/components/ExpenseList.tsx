@@ -13,16 +13,20 @@ interface Expense {
   isEditing: boolean;
 }
 
+interface Category {
+    id:string;
+    name:string;
+}
 interface ExpenseListProps {
     shouldRefresh: boolean;
 }
 
 export default function Expenses({shouldRefresh}: ExpenseListProps) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All"); // State for the selected category
 
   // Define the list of available categories
-  const categories = ["All", "alex", "lina", "home", "joaquin", "gasoline", "groceries"];
 
   useEffect(() => {
     const fetchExpenses = async () => {
@@ -46,8 +50,27 @@ export default function Expenses({shouldRefresh}: ExpenseListProps) {
         console.error("Error fetching expenses:", error);
       }
     };
+    const fetchCategories = async () => {
+      try {
+        const categoriesCollection = collection(firestore, "categories");
+        const categoriesSnapshot = await getDocs(categoriesCollection);
+
+        const categoryList = categoriesSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name || "",
+          } as Category;
+        });
+
+        setCategories(categoryList);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
 
     fetchExpenses();
+    fetchCategories()
   }, [shouldRefresh]);
 
   const handleDeleteExpense = async (id: string) => {
@@ -139,8 +162,8 @@ export default function Expenses({shouldRefresh}: ExpenseListProps) {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
+                {[{name:"All"},...categories].map(category => (
+                    <option key={category.name} value={category.name}>{category.name}</option>
                 ))}
                 </select>
             </div>
@@ -180,8 +203,8 @@ export default function Expenses({shouldRefresh}: ExpenseListProps) {
                       onChange={(e) => handleCategoryChange(expense.id, e.target.value)}
                       className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      {categories.slice(1).map(category => (
-                        <option key={category} value={category}>{category}</option>
+                      {[{name:"All"},...categories].slice(1).map(category => (
+                        <option key={category.name} value={category.name}>{category.name}</option>
                       ))}
                     </select>
                   </div>

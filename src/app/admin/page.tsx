@@ -12,13 +12,19 @@ interface Expense {
   amount: number;
 }
 
+interface Category {
+  id:string;
+  name:string;
+}
+
 export default function Admin() {
   const [income, setIncome] = useState<{ alex: string; lina: string }>({ alex: "0", lina: "0" });
   const [view, setView]=useState<'income' | 'expenses'>('expenses');
     const [newExpenseName, setNewExpenseName] = useState("");
     const [newExpenseAmount, setNewExpenseAmount] = useState<string>("");
     const [newExpenseCategory, setNewExpenseCategory] = useState("alex"); // Default category
-  const categories = ["alex", "lina", "home", "joaquin", "gasoline", "groceries"];
+    const [categories, setCategories] = useState<Category[]>([]);
+
     const [shouldRefreshExpenses, setShouldRefreshExpenses] = useState(false);
 
 
@@ -46,7 +52,26 @@ export default function Admin() {
         console.error("Error fetching incomes:", error);
       }
     };
+    const fetchCategories = async () => {
+      try {
+        const categoriesCollection = collection(firestore, "categories");
+        const categoriesSnapshot = await getDocs(categoriesCollection);
 
+        const categoryList = categoriesSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name || "",
+          } as Category;
+        });
+
+        setCategories(categoryList);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+
+    fetchCategories();
     fetchIncomes();
   }, []);
 
@@ -150,8 +175,8 @@ export default function Admin() {
                     className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                   {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
+                    <option key={category.name} value={category.name}>
+                      {category.name}
                     </option>
                   ))}
                 </select>
