@@ -1,7 +1,10 @@
+// src/app/admin/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { firestore } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
 
 interface Expense {
   title: string;
@@ -11,25 +14,36 @@ interface Expense {
 export default function Admin() {
   const [income, setIncome] = useState<{ alex: string; lina: string }>({ alex: "0", lina: "0" });
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [view, setView] = useState<'income' | 'expenses'>('income');
+  const [view, setView]=useState<'income' | 'expenses'>('income');
   const [newExpense, setNewExpense] = useState({ title: "", amount: "" });
 
   useEffect(() => {
-    const storedData = localStorage.getItem("budgetData");
-    if (storedData) {
+    const fetchIncomes = async () => {
       try {
-        const savedData = JSON.parse(storedData);
-        setIncome(savedData.income || { alex: "0", lina: "0" });
-        setExpenses(savedData.expenses || []);
-      } catch (error) {
-        console.error("Error parsing localStorage data:", error);
-      }
-    }
-  }, []);
+        const usersCollection = collection(firestore, 'users');
+        const usersSnapshot = await getDocs(usersCollection);
 
-  useEffect(() => {
-    localStorage.setItem("budgetData", JSON.stringify({ income, expenses }));
-  }, [income, expenses]);
+        let alexIncome = "0";
+        let linaIncome = "0";
+
+        usersSnapshot.forEach((doc) => {
+          const userData = doc.data();
+          if (userData.name === "Alex") {
+            alexIncome = userData.income ? userData.income.toString() : "0";
+          } else if (userData.name === "Lina") {
+            linaIncome = userData.income ? userData.income.toString() : "0";
+          }
+        });
+
+        setIncome({ alex: alexIncome, lina: linaIncome });
+
+      } catch (error) {
+        console.error("Error fetching incomes:", error);
+      }
+    };
+
+    fetchIncomes();
+  }, []);
 
   const handleIncomeChange = (name: "alex" | "lina", value: string) => {
     setIncome((prev) => ({ ...prev, [name]: value }));
