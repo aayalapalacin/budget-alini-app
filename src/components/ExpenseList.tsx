@@ -13,7 +13,11 @@ interface Expense {
   isEditing: boolean;
 }
 
-export default function Expenses() {
+interface ExpenseListProps {
+    shouldRefresh: boolean;
+}
+
+export default function Expenses({shouldRefresh}: ExpenseListProps) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All"); // State for the selected category
 
@@ -44,7 +48,7 @@ export default function Expenses() {
     };
 
     fetchExpenses();
-  }, []);
+  }, [shouldRefresh]);
 
   const handleDeleteExpense = async (id: string) => {
     try {

@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { firestore } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, addDoc } from "firebase/firestore";
 import Expenses from "@/components/ExpenseList";
 
 interface Expense {
@@ -14,9 +14,13 @@ interface Expense {
 
 export default function Admin() {
   const [income, setIncome] = useState<{ alex: string; lina: string }>({ alex: "0", lina: "0" });
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [view, setView]=useState<'income' | 'expenses'>('income');
-  const [newExpense, setNewExpense] = useState({ title: "", amount: "" });
+  const [view, setView]=useState<'income' | 'expenses'>('expenses');
+    const [newExpenseName, setNewExpenseName] = useState("");
+    const [newExpenseAmount, setNewExpenseAmount] = useState<string>("");
+    const [newExpenseCategory, setNewExpenseCategory] = useState("alex"); // Default category
+  const categories = ["alex", "lina", "home", "joaquin", "gasoline", "groceries"];
+    const [shouldRefreshExpenses, setShouldRefreshExpenses] = useState(false);
+
 
   useEffect(() => {
     const fetchIncomes = async () => {
@@ -50,10 +54,33 @@ export default function Admin() {
     setIncome((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddExpense = () => {
-    if (!newExpense.title || !newExpense.amount) return;
-    setExpenses([...expenses, { title: newExpense.title, amount: parseFloat(newExpense.amount) }]);
-    setNewExpense({ title: "", amount: "" });
+  const handleAddExpense = async () => {
+   console.log("name", newExpenseName)
+               console.log("name", typeof newExpenseAmount)
+      console.log("name", newExpenseCategory)
+      const expenseAmountNumber = parseFloat(newExpenseAmount);
+    if (!newExpenseName || !newExpenseAmount || !newExpenseCategory) return;
+
+    try {
+      // Add the new expense to the "expenses" collection in Firebase
+      const expensesCollection = collection(firestore, "expenses");
+      await addDoc(expensesCollection, {
+        name: newExpenseName,
+        amount: expenseAmountNumber,
+        category: newExpenseCategory,
+      });
+
+      // Clear the input fields
+      setNewExpenseName("");
+      setNewExpenseAmount("");
+      setNewExpenseCategory("alex");
+                        // set "shouldRefreshExpenses" to "true" before setting it back to "false"
+            setShouldRefreshExpenses(true);
+      console.log("Expense added successfully!");
+    } catch (error) {
+      console.error("Error adding expense:", error);
+    }
+               setShouldRefreshExpenses(false);
   };
 
   return (
@@ -94,13 +121,13 @@ export default function Admin() {
         </div>
       ) : (
         <div>
-          <div className="space-y-4">
+                   <div className="space-y-4">
             <div className="flex flex-col">
-              <label className="text-lg font-semibold mb-2">Expense Title</label>
+              <label className="text-lg font-semibold mb-2">Expense Name</label>
               <input
                 type="text"
-                value={newExpense.title}
-                onChange={(e) => setNewExpense({ ...newExpense, title: e.target.value })}
+                value={newExpenseName}
+                onChange={(e) => setNewExpenseName(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter expense title"
               />
@@ -108,21 +135,35 @@ export default function Admin() {
             <div className="flex flex-col">
               <label className="text-lg font-semibold mb-2">Expense Amount</label>
               <input
-                type="text"
-                value={newExpense.amount}
-                onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                type="number"
+                value={newExpenseAmount}
+                onChange={(e) => setNewExpenseAmount(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter expense amount"
               />
             </div>
+               <div className="flex flex-col">
+                  <label className="text-lg font-semibold mb-2">Expense Category</label>
+                  <select
+                    value={newExpenseCategory}
+                    onChange={(e) => setNewExpenseCategory(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                </div>
             <button 
               onClick={handleAddExpense} 
               className="w-full py-3 mt-4 text-white bg-gradient-to-r from-blue-500 to-blue-700 rounded-md shadow-lg hover:bg-blue-600 transition-all">
               Add Expense
             </button>
           </div>
-
-         <Expenses />
+             {/* Pass refreshExpenses to ExpenseList */}
+         <Expenses shouldRefresh={shouldRefreshExpenses} />
         </div>
       )}
 
