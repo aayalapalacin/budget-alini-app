@@ -15,6 +15,10 @@ interface Expense {
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All"); // State for the selected category
+
+  // Define the list of available categories
+  const categories = ["All", "alex", "lina", "home", "joaquin", "gasoline", "groceries"];
 
   useEffect(() => {
     const fetchExpenses = async () => {
@@ -113,14 +117,31 @@ export default function Expenses() {
       )
     );
   }
+    // Filter expenses based on selectedCategory
+    const filteredExpenses = selectedCategory === "All"
+    ? expenses
+    : expenses.filter(expense => expense.category === selectedCategory);
 
 
   return (
     <div className="p-6 max-w-2xl mx-auto bg-white min-h-screen text-gray-900 shadow-2xl rounded-xl">
       <h1 className="text-3xl font-bold mb-6 text-center text-blue-700">Expenses</h1>
-
+        {/* Category Filter Dropdown */}
+        <div className="mb-6">
+                <label htmlFor="category-filter" className="block text-lg font-semibold mb-2 text-gray-700">Filter by Category:</label>
+                <select
+                id="category-filter"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                {categories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                ))}
+                </select>
+            </div>
       <ul className="space-y-4">
-        {expenses.map((expense) => (
+        {filteredExpenses.map((expense) => (
           <li
             key={expense.id}
             className="bg-gray-100 rounded-md shadow-sm overflow-hidden"
