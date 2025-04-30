@@ -22,22 +22,49 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showBudgetOverview, setShowBudgetOverview] = useState(false); // State for toggle
 
-    useEffect(() => {
-      const fetchUsers = async () => {
+  useEffect(() => {
+    const fetchAppData = async () => {
+      try {
+        // Fetch user data (income for Alex and Lina)
         const usersCollection = collection(firestore, 'users');
-        const userSnapshot = await getDocs(usersCollection);
-        const userList = userSnapshot.docs.map(doc => {
-          return { id: doc.id, ...doc.data() } as User;
+        const usersSnapshot = await getDocs(usersCollection);
+
+        let alexIncome = 0;
+        let linaIncome = 0;
+
+        usersSnapshot.forEach((doc) => {
+          const userData = doc.data();
+          if (userData.name === "Alex") {
+            alexIncome = userData.income ? userData.income : 0;
+          } else if (userData.name === "Lina") {
+            linaIncome = userData.income ? userData.income : 0;
+          }
         });
-        console.log("users!!!!!!!",userList);
-      };
-  
-      fetchUsers();
-    }, []);
+
+        setIncome({ alex: alexIncome, lina: linaIncome });
+       
+        // Fetch expenses
+        const expensesCollection = collection(firestore, 'expenses');
+        const expensesSnapshot = await getDocs(expensesCollection);
+
+        const expenseList = expensesSnapshot.docs.map(doc => {
+          const expenseData = doc.data();
+          return { title: expenseData.name, amount: expenseData.amount } as Expense;
+        });
+        setExpenses(expenseList);
+
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchAppData();
+  }, []);
 
   // Calculate total income and expenses
   const totalIncome = income.alex + income.lina;
   const totalExpenses = expenses.reduce((sum, exp: Expense) => sum + exp.amount, 0);
+    const remainingBalance = totalIncome - totalExpenses
 
   // Handle adding a new expense
   const handleExpenseAdded = (amount: number, category: string) => {
@@ -75,8 +102,8 @@ export default function Home() {
           </div>
           <div className="p-4 border border-gray-300 rounded-lg shadow-md">
             <h2 className="text-lg font-semibold">Remaining Balance</h2>
-            <p className={`font-bold ${totalIncome - totalExpenses >= 0 ? "text-green-600" : "text-red-600"}`}>
-              ${totalIncome - totalExpenses}
+            <p className={`font-bold ${remainingBalance >= 0 ? "text-green-600" : "text-red-600"}`}>
+              ${remainingBalance}
             </p>
           </div>
         </div>
