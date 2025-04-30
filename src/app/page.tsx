@@ -3,10 +3,18 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import ExpenseInput from "../components/ExpenseInput"; // Importing the new ExpenseInput component
+import { firestore } from '@/lib/firebase'; // Your Firebase config
+import { collection, getDocs } from 'firebase/firestore';
 
 interface Expense {
   title: string;
   amount: number;
+}
+
+interface User {
+  id: string;
+  name: string;
+  income: number;
 }
 
 export default function Home() {
@@ -14,18 +22,18 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showBudgetOverview, setShowBudgetOverview] = useState(false); // State for toggle
 
-  useEffect(() => {
-    const storedData = localStorage.getItem("budgetData");
-    if (storedData) {
-      try {
-        const savedData = JSON.parse(storedData);
-        setIncome(savedData.income || { alex: 0, lina: 0 });
-        setExpenses(savedData.expenses || []);
-      } catch (error) {
-        console.error("Error parsing localStorage data:", error);
-      }
-    }
-  }, []);
+    useEffect(() => {
+      const fetchUsers = async () => {
+        const usersCollection = collection(firestore, 'users');
+        const userSnapshot = await getDocs(usersCollection);
+        const userList = userSnapshot.docs.map(doc => {
+          return { id: doc.id, ...doc.data() } as User;
+        });
+        console.log("users!!!!!!!",userList);
+      };
+  
+      fetchUsers();
+    }, []);
 
   // Calculate total income and expenses
   const totalIncome = income.alex + income.lina;
