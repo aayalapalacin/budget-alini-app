@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { firestore } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
+import Expenses from "@/components/ExpenseList";
 
 interface Expense {
   title: string;
@@ -121,14 +122,7 @@ export default function Admin() {
             </button>
           </div>
 
-          <div className="mt-6 max-h-40 overflow-y-auto border-t-2 pt-4">
-            {expenses.map((exp, index) => (
-              <div key={index} className="flex justify-between items-center p-4 border-b hover:bg-gray-100 transition-all">
-                <span>{exp.title}</span>
-                <span className="text-red-600">${exp.amount.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
+         <Expenses />
         </div>
       )}
 
