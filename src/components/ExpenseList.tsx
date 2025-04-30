@@ -170,14 +170,16 @@ export default function Expenses() {
                     />
                   
                   <label htmlFor={`category-${expense.id}`} className="text-sm font-medium text-gray-700">Category</label>
-                    <input
-                      type="text"
+                  <select
                       id={`category-${expense.id}`}
                       value={expense.category}
                       onChange={(e) => handleCategoryChange(expense.id, e.target.value)}
                       className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter expense category"
-                    />
+                    >
+                      {categories.slice(1).map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
                   </div>
                ) : (
                 <div>
