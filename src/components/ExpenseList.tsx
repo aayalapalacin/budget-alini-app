@@ -1,5 +1,5 @@
-// src/app/expenses/page.tsx
-"use client";
+// src/components/ExpenseList.tsx
+"use client"; // This is needed if you're using app router in Next.js
 
 import { useState, useEffect } from "react";
 import { firestore } from "@/lib/firebase";
@@ -10,253 +10,246 @@ interface Expense {
   name: string;
   amount: number;
   category: string;
-  isEditing: boolean;
 }
 
 interface Category {
-    id:string;
-    name:string;
-}
-interface ExpenseListProps {
-    shouldRefresh: boolean;
+  id: string;
+  name: string;
 }
 
-export default function Expenses({shouldRefresh}: ExpenseListProps) {
+interface ExpensesProps {
+  shouldRefresh: boolean;
+  categories: Category[]; // Pass categories down from Admin
+}
+
+const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("All"); // State for the selected category
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  // Define the list of available categories
+  // State for editing
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [tempEditedExpense, setTempEditedExpense] = useState<Partial<Expense> | null>(null);
 
+  // Fetch expenses whenever the component mounts, selected category changes,
+  // or shouldRefresh changes
   useEffect(() => {
     const fetchExpenses = async () => {
       try {
-        const expensesCollection = collection(firestore, "expenses");
+        const expensesCollection = collection(firestore, 'expenses');
         const expensesSnapshot = await getDocs(expensesCollection);
 
-        const expenseList = expensesSnapshot.docs.map((doc) => {
+        const expensesList = expensesSnapshot.docs.map(doc => {
           const data = doc.data();
           return {
             id: doc.id,
-            name: data.name || "",
+            name: data.name || '',
             amount: data.amount || 0,
-            category: data.category || "",
-            isEditing: false, // Add isEditing state
+            category: data.category || ''
           } as Expense;
         });
 
-        setExpenses(expenseList);
+        // Apply filter *after* fetching all data if filtering locally
+        // (Note: For large datasets, consider Firestore queries instead of client-side filtering)
+        const filteredExpenses = selectedCategory === 'all'
+          ? expensesList
+          : expensesList.filter(expense => expense.category === selectedCategory);
+
+        setExpenses(filteredExpenses);
       } catch (error) {
         console.error("Error fetching expenses:", error);
       }
     };
-    const fetchCategories = async () => {
+    fetchExpenses();
+  }, [selectedCategory, shouldRefresh]); // Depend on selectedCategory and shouldRefresh
+
+  // --- Editing Logic ---
+
+  const startEditing = (expense: Expense) => {
+      setEditingExpenseId(expense.id);
+      // Initialize temporary state with current expense data
+      setTempEditedExpense({
+          name: expense.name,
+          amount: expense.amount,
+          category: expense.category
+      });
+  };
+
+  const cancelEditing = () => {
+      setEditingExpenseId(null);
+      setTempEditedExpense(null);
+  };
+
+  const saveEditing = async (id: string) => {
+      if (!tempEditedExpense) return;
+
       try {
-        const categoriesCollection = collection(firestore, "categories");
-        const categoriesSnapshot = await getDocs(categoriesCollection);
+          const expenseRef = doc(firestore, "expenses", id);
+          // Only update the fields that are in tempEditedExpense
+          await updateDoc(expenseRef, {
+              name: tempEditedExpense.name,
+              amount: tempEditedExpense.amount,
+              category: tempEditedExpense.category,
+              // Add other fields if needed
+          });
 
-        const categoryList = categoriesSnapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name || "",
-          } as Category;
-        });
+          console.log(`Expense ${id} updated successfully!`);
 
-        setCategories(categoryList);
+          // Reset editing state
+          setEditingExpenseId(null);
+          setTempEditedExpense(null);
+
+          // Trigger a refresh of the list
+          // We need to tell the Admin component to trigger the refresh
+          // This might require lifting the refresh logic up or having a dedicated refresh function passed down.
+          // For simplicity here, let's re-fetch manually or rely on `shouldRefresh` mechanism if you adjust it.
+          // A simple manual re-fetch after save:
+          const expensesCollection = collection(firestore, 'expenses');
+          const expensesSnapshot = await getDocs(expensesCollection);
+           const expensesList = expensesSnapshot.docs.map(doc => {
+              const data = doc.data();
+              return {
+                id: doc.id,
+                name: data.name || '',
+                amount: data.amount || 0,
+                category: data.category || ''
+              } as Expense;
+            });
+             const filteredExpenses = selectedCategory === 'all'
+                ? expensesList
+                : expensesList.filter(expense => expense.category === selectedCategory);
+            setExpenses(filteredExpenses);
+
+
       } catch (error) {
-        console.error("Error fetching categories:", error);
+          console.error(`Error updating expense ${id}:`, error);
+          // Optionally show an error message
       }
+  };
+
+    const handleDelete = async (id: string) => {
+        try {
+            await deleteDoc(doc(firestore, "expenses", id));
+            console.log(`Expense ${id} deleted successfully!`);
+            // Filter the item out of the current state for immediate UI update
+            setExpenses(expenses.filter(expense => expense.id !== id));
+        } catch (error) {
+            console.error(`Error deleting expense ${id}:`, error);
+            // Optionally show an error message
+        }
     };
 
-    fetchExpenses();
-    fetchCategories()
-  }, [shouldRefresh]);
 
-  const handleDeleteExpense = async (id: string) => {
-    try {
-      const expenseDocRef = doc(firestore, "expenses", id);
-      await deleteDoc(expenseDocRef);
-      setExpenses(expenses.filter((expense) => expense.id !== id)); // Update UI
-    } catch (error) {
-      console.error("Error deleting expense:", error);
-    }
+  const handleTempInputChange = (field: keyof Expense, value: any) => {
+      setTempEditedExpense(prev => ({
+          ...prev,
+          [field]: value
+      }));
   };
-
-  const handleEditExpense = (id: string) => {
-    setExpenses(
-      expenses.map((expense) =>
-        expense.id === id ? { ...expense, isEditing: true } : expense
-      )
-    );
-  };
-
-  const handleSaveExpense = async (id: string, newName:string, newAmount: number, newCategory: string) => {
-    try {
-      const expenseDocRef = doc(firestore, "expenses", id);
-      await updateDoc(expenseDocRef, { amount: newAmount, category: newCategory, name: newName });
-      setExpenses(
-        expenses.map((expense) =>
-          expense.id === id
-            ? { ...expense, amount: newAmount, category: newCategory, name: newName, isEditing: false }
-            : expense
-        )
-      );
-    } catch (error) {
-      console.error("Error updating expense:", error);
-    }
-  };
-
-  const handleCancelEdit = (id: string) => {
-    setExpenses(
-      expenses.map((expense) =>
-        expense.id === id ? { ...expense, isEditing: false } : expense
-      )
-    );
-  };
-
-  const handleNameChange = (id:string, newName:string) =>{
-    setExpenses(
-      expenses.map((expense) =>
-        expense.id === id
-          ? { ...expense, name: newName }
-          : expense
-      )
-    );
-  }
-
-  const handleAmountChange = (id:string, newAmount: number) =>{
-    setExpenses(
-      expenses.map((expense) =>
-        expense.id === id
-          ? { ...expense, amount: newAmount }
-          : expense
-      )
-    );
-  }
-
-    const handleCategoryChange = (id:string, newCategory: string) =>{
-    setExpenses(
-      expenses.map((expense) =>
-        expense.id === id
-          ? { ...expense, category: newCategory }
-          : expense
-      )
-    );
-  }
-    // Filter expenses based on selectedCategory
-    const filteredExpenses = selectedCategory === "All"
-    ? expenses
-    : expenses.filter(expense => expense.category === selectedCategory);
 
 
   return (
-    <div className="p-6 max-w-2xl mx-auto bg-white min-h-screen text-gray-900 shadow-2xl rounded-xl">
-      <h1 className="text-3xl font-bold mb-6 text-center text-blue-700">Expenses</h1>
-        {/* Category Filter Dropdown */}
-        <div className="mb-6">
-                <label htmlFor="category-filter" className="block text-lg font-semibold mb-2 text-gray-700">Filter by Category:</label>
-                <select
-                id="category-filter"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                {[{name:"All"},...categories].map(category => (
-                    <option key={category.name} value={category.name}>{category.name}</option>
-                ))}
-                </select>
-            </div>
+    <div className="mt-8">
+      <h2 className="text-2xl font-semibold mb-4 text-center text-blue-700">Expense List</h2>
+
+      <div className="mb-4">
+        <label className="text-lg font-semibold mb-2 block">Filter by Category</label>
+        <select
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="all">All Categories</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.name}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <ul className="space-y-4">
-        {filteredExpenses.map((expense) => (
-          <li
-            key={expense.id}
-            className="bg-gray-100 rounded-md shadow-sm overflow-hidden"
-          >
-            <div className="flex justify-between items-center p-4">
-            {expense.isEditing ? (
-                <div className="flex flex-col">
-                    <label htmlFor={`name-${expense.id}`} className="text-sm font-medium text-gray-700">Expense Name</label>
-                    <input
-                      type="text"
-                      id={`name-${expense.id}`}
-                      value={expense.name}
-                      onChange={(e) => handleNameChange(expense.id, e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter expense title"
-                    />
-                  
-                    <label htmlFor={`amount-${expense.id}`} className="text-sm font-medium text-gray-700">Expense Amount</label>
-                    <input
-                      type="number"
-                      id={`amount-${expense.id}`}
-                      value={expense.amount}
-                      onChange={(e) => handleAmountChange(expense.id, parseFloat(e.target.value))}
-                      className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter expense amount"
-                    />
-                  
-                  <label htmlFor={`category-${expense.id}`} className="text-sm font-medium text-gray-700">Category</label>
-                  <select
-                      id={`category-${expense.id}`}
-                      value={expense.category}
-                      onChange={(e) => handleCategoryChange(expense.id, e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {[{name:"All"},...categories].slice(1).map(category => (
-                        <option key={category.name} value={category.name}>{category.name}</option>
-                      ))}
-                    </select>
+        {expenses.map((expense) => (
+          <li key={expense.id} className="p-4 border border-gray-200 rounded-md shadow-sm bg-gray-50">
+            {editingExpenseId === expense.id ? (
+              // Render edit form
+              <div className="space-y-3">
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700">Name</label>
+                      <input
+                          type="text"
+                          value={tempEditedExpense?.name || ''}
+                          onChange={(e) => handleTempInputChange('name', e.target.value)}
+                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      />
                   </div>
-               ) : (
-                <div>
-                  <span className="text-lg font-semibold">
-                    {expense.name}
-                    <span className="text-sm text-gray-500"> ({expense.category})</span>
-                  </span>
-                </div>
-              )}
+                   <div>
+                      <label className="block text-sm font-medium text-gray-700">Amount</label>
+                       <input
+                          type="number"
+                          value={tempEditedExpense?.amount || 0}
+                          onChange={(e) => handleTempInputChange('amount', parseFloat(e.target.value))}
+                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      />
+                   </div>
+                   <div>
+                      <label className="block text-sm font-medium text-gray-700">Category</label>
+                       <select
+                          value={tempEditedExpense?.category || ''}
+                          onChange={(e) => handleTempInputChange('category', e.target.value)}
+                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {categories.map((category) => (
+                            <option key={category.id} value={category.name}>
+                              {category.name}
+                            </option>
+                          ))}
+                      </select>
+                   </div>
 
-
-              <div className="flex items-center">
-                <span className="text-red-600 mr-4">${expense.amount.toFixed(2)}</span>
-
-                {expense.isEditing ? (
-                  <>
-                    <button
-                      onClick={() => handleSaveExpense(expense.id, expense.name, expense.amount, expense.category)}
-                      className="text-green-500 hover:text-green-700 focus:outline-none mr-2"
-                    >
-                      save
-                    </button>
-                    <button
-                      onClick={() => handleCancelEdit(expense.id)}
-                      className="text-gray-500 hover:text-gray-700 focus:outline-none"
-                    >
-                      cancel
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => handleEditExpense(expense.id)}
-                      className="text-blue-500 hover:text-blue-700 focus:outline-none mr-2"
-                    >
-                      edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteExpense(expense.id)}
-                      className="text-red-500 hover:text-red-700 focus:outline-none"
-                    >
-                      x
-                    </button>
-                  </>
-                )}
+                  <div className="flex space-x-2 justify-end">
+                       <button
+                          onClick={() => saveEditing(expense.id)}
+                          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                       >
+                          Save
+                       </button>
+                        <button
+                          onClick={cancelEditing}
+                          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                       >
+                          Cancel
+                       </button>
+                  </div>
               </div>
-            </div>
+            ) : (
+              // Render display view
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-semibold">{expense.name}</p>
+                  <p className="text-gray-700">${expense.amount.toFixed(2)}</p>
+                  <p className="text-gray-600 text-sm">Category: {expense.category}</p>
+                </div>
+                <div className="flex space-x-2">
+                    <button
+                        onClick={() => startEditing(expense)}
+                        className="px-3 py-1 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors"
+                    >
+                        Edit
+                    </button>
+                     <button
+                        onClick={() => handleDelete(expense.id)}
+                        className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                    >
+                        Delete
+                    </button>
+                </div>
+              </div>
+            )}
           </li>
         ))}
       </ul>
     </div>
   );
 }
+
+export default Expenses;

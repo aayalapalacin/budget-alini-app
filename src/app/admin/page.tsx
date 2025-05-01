@@ -13,19 +13,19 @@ interface Expense {
 }
 
 interface Category {
-  id:string;
-  name:string;
+  id: string;
+  name: string;
 }
 
 export default function Admin() {
   const [income, setIncome] = useState<{ alex: string; lina: string }>({ alex: "0", lina: "0" });
-  const [view, setView]=useState<'income' | 'expenses'>('expenses');
-    const [newExpenseName, setNewExpenseName] = useState("");
-    const [newExpenseAmount, setNewExpenseAmount] = useState<string>("");
-    const [newExpenseCategory, setNewExpenseCategory] = useState("alex"); // Default category
-    const [categories, setCategories] = useState<Category[]>([]);
+  const [view, setView] = useState<'income' | 'expenses'>('expenses');
+  const [newExpenseName, setNewExpenseName] = useState("");
+  const [newExpenseAmount, setNewExpenseAmount] = useState<string>("");
+  const [newExpenseCategory, setNewExpenseCategory] = useState("alex"); // Default category
+  const [categories, setCategories] = useState<Category[]>([]);
 
-    const [shouldRefreshExpenses, setShouldRefreshExpenses] = useState(false);
+  const [shouldRefreshExpenses, setShouldRefreshExpenses] = useState(false);
 
 
   useEffect(() => {
@@ -80,10 +80,10 @@ export default function Admin() {
   };
 
   const handleAddExpense = async () => {
-   console.log("name", newExpenseName)
-               console.log("name", typeof newExpenseAmount)
-      console.log("name", newExpenseCategory)
-      const expenseAmountNumber = parseFloat(newExpenseAmount);
+    console.log("name", newExpenseName)
+    console.log("name", typeof newExpenseAmount)
+    console.log("name", newExpenseCategory)
+    const expenseAmountNumber = parseFloat(newExpenseAmount);
     if (!newExpenseName || !newExpenseAmount || !newExpenseCategory) return;
 
     try {
@@ -99,19 +99,19 @@ export default function Admin() {
       setNewExpenseName("");
       setNewExpenseAmount("");
       setNewExpenseCategory("alex");
-                        // set "shouldRefreshExpenses" to "true" before setting it back to "false"
-            setShouldRefreshExpenses(true);
+      // set "shouldRefreshExpenses" to "true" before setting it back to "false"
+      setShouldRefreshExpenses(true);
       console.log("Expense added successfully!");
     } catch (error) {
       console.error("Error adding expense:", error);
     }
-               setShouldRefreshExpenses(false);
+    setShouldRefreshExpenses(false);
   };
 
   return (
     <div className="p-6 max-w-lg mx-auto bg-white min-h-screen text-gray-900 shadow-2xl rounded-xl">
       <h1 className="text-3xl font-bold mb-6 text-center text-blue-700">Admin Panel</h1>
-      
+
       <div className="flex justify-center gap-6 mb-6">
         <button onClick={() => setView('income')} className={`px-6 py-3 rounded-md transition-all text-white ${view === 'income' ? 'bg-gradient-to-r from-blue-500 to-blue-700' : 'bg-gray-300 text-gray-700'} hover:scale-105`}>
           Income
@@ -146,7 +146,7 @@ export default function Admin() {
         </div>
       ) : (
         <div>
-                   <div className="space-y-4">
+          <div className="space-y-4">
             <div className="flex flex-col">
               <label className="text-lg font-semibold mb-2">Expense Name</label>
               <input
@@ -167,28 +167,28 @@ export default function Admin() {
                 placeholder="Enter expense amount"
               />
             </div>
-               <div className="flex flex-col">
-                  <label className="text-lg font-semibold mb-2">Expense Category</label>
-                  <select
-                    value={newExpenseCategory}
-                    onChange={(e) => setNewExpenseCategory(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                  {categories.map((category) => (
-                    <option key={category.name} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                </div>
-            <button 
-              onClick={handleAddExpense} 
+            <div className="flex flex-col">
+              <label className="text-lg font-semibold mb-2">Expense Category</label>
+              <select
+                value={newExpenseCategory}
+                onChange={(e) => setNewExpenseCategory(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {categories.map((category) => (
+                  <option key={category.name} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={handleAddExpense}
               className="w-full py-3 mt-4 text-white bg-gradient-to-r from-blue-500 to-blue-700 rounded-md shadow-lg hover:bg-blue-600 transition-all">
               Add Expense
             </button>
           </div>
-             {/* Pass refreshExpenses to ExpenseList */}
-         <Expenses shouldRefresh={shouldRefreshExpenses} />
+          {/* Pass refreshExpenses and categories to ExpenseList */}
+          <Expenses shouldRefresh={shouldRefreshExpenses} categories={categories} />
         </div>
       )}
 
