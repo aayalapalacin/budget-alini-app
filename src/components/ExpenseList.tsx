@@ -166,6 +166,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
           ))}
         </select>
       </div>
+    <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
 
       <ul className="space-y-4">
         {expenses.map((expense) => (
@@ -249,6 +250,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
         ))}
       </ul>
     </div>
+  </div>
   );
 }
 
