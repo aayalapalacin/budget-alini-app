@@ -1,341 +1,262 @@
-// src/app/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import PurchaseInput from "../components/PurchaseInput";
 import { firestore } from '@/lib/firebase';
-import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore'; // Import updateDoc, doc, deleteDoc
-
+import { collection, getDocs, addDoc, updateDoc, doc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 interface Expense {
-    id?: string; // Make id optional for new expenses before saving
-    name: string;
-    amount: number;
-    category: string;
-    isEditing?: boolean; // Add isEditing state for inline editing
+  id?: string;
+  name: string;
+  amount: number;
+  category: string;
+  timestamp?: Date;
+  isEditing?: boolean;
 }
 
-interface User {
-    id: string;
-    name: string;
-    income: number;
+function formatDateForInput(date?: Date): string {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatDisplayDate(date?: Date): string {
+  return date ? date.toLocaleDateString() : "No date";
 }
 
 export default function Home() {
-    const [income, setIncome] = useState<{ alex: number; lina: number }>({ alex: 0, lina: 0 });
-    const [expenses, setExpenses] = useState<Expense[]>([]);
-    const [showBudgetOverview, setShowBudgetOverview] = useState(false);
-    const [selectedPurchaseCategory, setSelectedPurchaseCategory] = useState("all purchase"); // For new filter
-    const editablePersonCategories = ["alex purchase", "lina purchase"];
+  const [income, setIncome] = useState({ alex: 0, lina: 0 });
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [showBudgetOverview, setShowBudgetOverview] = useState(false);
+  const [selectedPurchaseCategory, setSelectedPurchaseCategory] = useState("all purchase");
+  const editablePersonCategories = ["alex purchase", "lina purchase"];
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [tempEditedExpense, setTempEditedExpense] = useState<Partial<Expense> | null>(null);
 
-    // New state for temporary edited values
-    const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
-    const [tempEditedExpense, setTempEditedExpense] = useState<Partial<Expense> | null>(null);
+  useEffect(() => {
+    const fetchAppData = async () => {
+      const usersCollection = collection(firestore, 'users');
+      const usersSnapshot = await getDocs(usersCollection);
+      let alexIncome = 0, linaIncome = 0;
 
+      usersSnapshot.forEach(doc => {
+        const user = doc.data();
+        if (user.name === "Alex") alexIncome = user.income ?? 0;
+        else if (user.name === "Lina") linaIncome = user.income ?? 0;
+      });
 
-    useEffect(() => {
-        const fetchAppData = async () => {
-            try {
-                // Fetch user data (income for Alex and Lina)
-                const usersCollection = collection(firestore, 'users');
-                const usersSnapshot = await getDocs(usersCollection);
+      setIncome({ alex: alexIncome, lina: linaIncome });
 
-                let alexIncome = 0;
-                let linaIncome = 0;
+      const expensesCollection = collection(firestore, 'expenses');
+      const expensesSnapshot = await getDocs(expensesCollection);
+      const list = expensesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        const timestamp = data.timestamp instanceof Timestamp ? data.timestamp.toDate() : undefined;
+        return { id: doc.id, name: data.name, amount: data.amount, category: data.category, timestamp };
+      });
 
-                usersSnapshot.forEach((doc) => {
-                    const userData = doc.data();
-                    if (userData.name === "Alex") {
-                        alexIncome = userData.income ? userData.income : 0;
-                    } else if (userData.name === "Lina") {
-                        linaIncome = userData.income ? userData.income : 0;
-                    }
-                });
-
-                setIncome({ alex: alexIncome, lina: linaIncome });
-
-                // Fetch expenses
-                const expensesCollection = collection(firestore, 'expenses');
-                const expensesSnapshot = await getDocs(expensesCollection);
-
-                const expenseList = expensesSnapshot.docs.map(doc => {
-                    const expenseData = doc.data();
-                    return {
-                        id: doc.id,
-                        name: expenseData.name,
-                        amount: expenseData.amount,
-                        category: expenseData.category // Ensure the category is part of the fetched data
-                    } as Expense;
-                });
-                setExpenses(expenseList);
-
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            }
-        };
-
-        fetchAppData();
-    }, []);
-
-    // Calculate total income and expenses
-    const totalIncome = income.alex + income.lina;
-    const totalExpenses = expenses.reduce((sum, exp: Expense) => sum + exp.amount, 0);
-    const remainingBalance = totalIncome - totalExpenses;
-
-    // Function to handle adding a new expense
-    const handleExpenseAdded = async (name: string, amount: number, category: string) => {
-        try {
-            const expensesCollection = collection(firestore, "expenses");
-            await addDoc(expensesCollection, {
-                name: name,
-                amount: amount,
-                category: category,
-            });
-        } catch (error) {
-            console.log("failed to write to db, err", error)
-        }
-
-        setExpenses([...expenses, { name: name, amount, category }]); // Update name and category
+      list.sort((a, b) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0));
+      setExpenses(list);
     };
 
-    // Dynamically generate dropdown options with "Purchase" suffix
-    const purchaseCategories = ['alex', 'lina', 'home', 'joaquin', 'gasoline', 'groceries', 'all'];
-    const purchaseCategoriesFiltered = purchaseCategories.map(cat => `${cat} purchase`);
-    // Filter expenses to only show 'purchase' expenses
-    const purchaseExpenses = expenses.filter(expense => expense.category.toLowerCase().includes('purchase'));
-    console.log(selectedPurchaseCategory, "cat!!!!!!!!!!1")
-    console.log(purchaseExpenses, "purchaseExpenses!!!!!!!!!")
-    const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedPurchaseCategory(e.target.value);
-    };
+    fetchAppData();
+  }, []);
 
-    // Filter "purchase" expenses based on selectedCategory
-    const filteredExpenses = selectedPurchaseCategory === "all purchase"
-        ? purchaseExpenses
-        : purchaseExpenses.filter(expense => expense.category === selectedPurchaseCategory);
+  const totalIncome = income.alex + income.lina;
+  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const remainingBalance = totalIncome - totalExpenses;
 
-    // --- Edit and Delete Functions ---
+  const handleExpenseAdded = async (
+    name: string,
+    amount: number,
+    category: string,
+    date?: Date
+  ) => {
+    const expensesCollection = collection(firestore, "expenses");
+  
+    await addDoc(expensesCollection, {
+      name,
+      amount,
+      category,
+      timestamp: date ? Timestamp.fromDate(date) : serverTimestamp(),
+    });
+  
+    const snapshot = await getDocs(expensesCollection);
+    const updatedList = snapshot.docs.map(doc => {
+      const data = doc.data();
+      const timestamp = data.timestamp instanceof Timestamp ? data.timestamp.toDate() : undefined;
+      return { id: doc.id, name: data.name, amount: data.amount, category: data.category, timestamp };
+    });
+  
+    updatedList.sort((a, b) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0));
+    setExpenses(updatedList);
+  };
+  
 
-    const handleDeletePurchase = async (id: string) => {
-        try {
-            const expenseDocRef = doc(firestore, "expenses", id);
-            await deleteDoc(expenseDocRef);
-            // Update UI: filter out the deleted expense
-            setExpenses(expenses.filter((expense) => expense.id !== id));
-        } catch (error) {
-            console.error("Error deleting expense:", error);
-        }
-    };
+  const purchaseCategories = ['alex', 'lina', 'home', 'joaquin', 'gasoline', 'groceries', 'all'];
+  const purchaseCategoriesFiltered = purchaseCategories.map(cat => `${cat} purchase`);
+  const purchaseExpenses = expenses.filter(exp => exp.category.toLowerCase().includes('purchase'));
+  const filteredExpenses = selectedPurchaseCategory === "all purchase"
+    ? purchaseExpenses
+    : purchaseExpenses.filter(exp => exp.category === selectedPurchaseCategory);
 
+  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedPurchaseCategory(e.target.value);
+  };
 
-    const handleStartEditPurchase = (expense: Expense) => {
-        setEditingExpenseId(expense.id!);
-        setTempEditedExpense({ ...expense }); // Copy existing data to temp state
+  const handleDeletePurchase = async (id: string) => {
+    await deleteDoc(doc(firestore, "expenses", id));
+    setExpenses(expenses.filter(exp => exp.id !== id));
+  };
 
-    };
+  const handleStartEditPurchase = (expense: Expense) => {
+    setEditingExpenseId(expense.id!);
+    setTempEditedExpense({ ...expense });
+  };
 
-    const handleCancelEdit = (id: string) => {
-        setEditingExpenseId(null);
-        setTempEditedExpense(null); // Clear temp state when cancelling
-    };
+  const handleCancelEdit = () => {
+    setEditingExpenseId(null);
+    setTempEditedExpense(null);
+  };
 
-    const handleEditedValueChange = (field: keyof Expense, value: any) => {
-        setTempEditedExpense((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
-    };
+  const handleEditedValueChange = (field: keyof (Expense & { timestamp?: Date }), value: any) => {
+    setTempEditedExpense(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        [field]: field === 'timestamp' ? new Date(value) : value,
+      };
+    });
+  };
 
+  const handleSavePurchase = async (id: string) => {
+    if (!id || !tempEditedExpense) return;
+    await updateDoc(doc(firestore, "expenses", id), {
+      name: tempEditedExpense.name,
+      amount: tempEditedExpense.amount,
+      category: tempEditedExpense.category,
+      timestamp: tempEditedExpense.timestamp ? Timestamp.fromDate(tempEditedExpense.timestamp) : serverTimestamp(),
+    });
 
-    const handleSavePurchase = async (expenseToSaveId: string) => {
-        if (!expenseToSaveId || !tempEditedExpense) return;
+    setExpenses(expenses.map(exp => exp.id === id ? { ...exp, ...tempEditedExpense, isEditing: false } : exp));
+    setEditingExpenseId(null);
+    setTempEditedExpense(null);
+  };
 
-        try {
-            const expenseDocRef = doc(firestore, "expenses", expenseToSaveId);
-            //console.log(expenseToSave,"expenseToSave!!")
-            await updateDoc(expenseDocRef, {
-                name: tempEditedExpense.name,
-                amount: tempEditedExpense.amount,
-                category: tempEditedExpense.category, // Save the selected 'alex purchase' or 'lina purchase'
-            });
+  return (
+    <div className="p-6 max-w-lg mx-auto min-h-screen text-gray-900 bg-white shadow-xl rounded-lg">
+      <h1 className="text-2xl font-bold mb-6 text-center">Budget Overview</h1>
 
-            // Update UI: set isEditing to false and update the expense in state
-            setExpenses(
-                expenses.map((expense) =>
-                    expense.id === expenseToSaveId ? { ...expense, ...tempEditedExpense, isEditing: false } : expense
-                )
-            );
+      <div className="mb-4 flex items-center justify-between">
+        <label htmlFor="toggle" className="text-lg font-semibold">
+          Show Budget Overview
+        </label>
+        <input
+          type="checkbox"
+          id="toggle"
+          checked={showBudgetOverview}
+          onChange={() => setShowBudgetOverview(!showBudgetOverview)}
+        />
+      </div>
 
-            setEditingExpenseId(null);
-            setTempEditedExpense(null);
-
-
-            console.log("Purchase updated successfully!");
-
-        } catch (error) {
-            console.error("Error updating purchase:", error);
-        }
-    };
-
-    return (
-        <div className="p-6 max-w-lg mx-auto min-h-screen text-gray-900 bg-white shadow-xl rounded-lg">
-            <h1 className="text-2xl font-bold mb-6 text-center">Budget Overview</h1>
-
-            {/* Toggle Button for Budget Overview */}
-            <div className="mb-4 flex items-center justify-between">
-                <label htmlFor="toggle" className="text-lg font-semibold">
-                    Show Budget Overview
-                </label>
-                <input
-                    type="checkbox"
-                    id="toggle"
-                    checked={showBudgetOverview}
-                    onChange={() => setShowBudgetOverview(!showBudgetOverview)}
-                    className="toggle-checkbox"
-                />
-            </div>
-
-            {/* Conditional Rendering of Budget Overview */}
-            {showBudgetOverview && (
-                <div>
-                    <div className="mb-4 p-4 border border-gray-300 rounded-lg shadow-md">
-                        <h2 className="text-lg font-semibold">Total Income</h2>
-                        <p className="text-green-600 font-bold">${totalIncome}</p>
-                    </div>
-                    <div className="mb-4 p-4 border border-gray-300 rounded-lg shadow-md">
-                        <h2 className="text-lg font-semibold">Total Expenses</h2>
-                        <p className="text-red-600 font-bold">${totalExpenses}</p>
-                    </div>
-                    <div className="p-4 border border-gray-300 rounded-lg shadow-md">
-                        <h2 className="text-lg font-semibold">Remaining Balance</h2>
-                        <p className={`font-bold ${remainingBalance >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            ${remainingBalance}
-                        </p>
-                    </div>
-                </div>
-            )}
-
-            {/* Add Purchase Section */}
-            <PurchaseInput
-                totalIncome={totalIncome}
-                totalExpenses={totalExpenses}
-                onPurchaseAdded={handleExpenseAdded}
-            />
-            <label htmlFor="category" className="block text-gray-700 text-sm font-bold mb-2">
-                Filter By Category:
-            </label>
-            <select
-                id="category"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                value={selectedPurchaseCategory} // Bind to the base category name (e.g., 'alex')
-                onChange={handleCategoryChange}
-            >
-
-                {purchaseCategoriesFiltered.map(baseCategory => ( // Map over base categories
-                    <option key={baseCategory} value={baseCategory}>{baseCategory}</option> // Display with suffix, but value is base
-                ))}
-            </select>
-            <div>
-                {filteredExpenses.map((expense) => {
-
-                    return (
-
-
-                        <li key={expense.id} className="flex justify-between items-center p-4 border-b hover:bg-gray-100 transition-all">
-                            {editingExpenseId === expense.id ? (
-                                // Edit mode
-                                <div className="flex flex-col space-y-2">
-                                    <label htmlFor={`edit-name-${expense.id}`} className="text-sm font-medium text-gray-700">Item Name</label>
-                                    <input
-                                        type="text"
-                                        id={`edit-name-${expense.id}`}
-                                        value={tempEditedExpense?.name || ""}
-                                        onChange={(e) => handleEditedValueChange('name', e.target.value)}
-                                        className="w-full p-2 border border-gray-300 rounded-md text-gray-900"
-                                        placeholder="Item Name"
-                                    />
-
-                                    <label htmlFor={`edit-amount-${expense.id}`} className="text-sm font-medium text-gray-700">Amount</label>
-                                    <input
-                                        type="number"
-                                        id={`edit-amount-${expense.id}`}
-                                        value={tempEditedExpense?.amount || 0}
-                                        onChange={(e) => handleEditedValueChange('amount', parseFloat(e.target.value) || 0)}
-                                        className="w-full p-2 border border-gray-300 rounded-md text-gray-900"
-                                        placeholder="Amount"
-                                    />
-
-                                    <label htmlFor={`edit-category-${expense.id}`} className="text-sm font-medium text-gray-700">Person</label>
-                                    <select
-                                        id={`edit-category-${expense.id}`}
-                                        value={tempEditedExpense?.category || ""}
-                                        onChange={(e) => {
-                                            console.log(e.target.value, "category selected")
-                                            handleEditedValueChange('category', e.target.value)
-                                        }}
-                                        className="w-full p-2 border border-gray-300 rounded-md text-gray-900"
-                                    >
-                                        {editablePersonCategories.map((cat) => (
-                                            <option key={cat} value={cat}>
-                                                {cat}
-                                            </option>
-                                        ))}
-                                    </select>
-
-                                    <div className="flex justify-end mt-3 space-x-2">
-                                        <button
-                                            onClick={() => {
-                                                handleSavePurchase(expense.id!);
-                                            }}
-                                            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-700 focus:outline-none"
-                                        >
-                                            Save
-                                        </button>
-                                        <button
-                                            onClick={() => handleCancelEdit(expense.id!)}
-                                            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none"
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                // Display mode
-                                <div className="flex justify-between items-center">
-                                    <div>
-                                        <div className="font-semibold">{expense.name}</div>
-                                        <div className="text-sm text-gray-600">Category: {expense.category}</div>
-                                        <div>Amount: ${expense.amount.toFixed(2)}</div>
-                                    </div>
-
-                                    <div>
-                                        <button
-                                            onClick={() => handleStartEditPurchase(expense)}
-                                            className="px-3 py-1 bg-blue-200 text-blue-700 rounded-md hover:bg-blue-300 focus:outline-none mr-2"
-                                        >
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeletePurchase(expense.id!)}
-                                            className="px-3 py-1 bg-red-200 text-red-700 rounded-md hover:bg-red-300 focus:outline-none"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </li>
-                    )
-                })}
-            </div>
-            <div className="mt-6 text-center">
-                <Link href="/admin">
-                    <button className="px-6 py-3 rounded-md shadow-md bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold transition-all transform hover:scale-105 hover:shadow-lg hover:from-purple-500 hover:to-blue-500">
-                        Go to Admin
-                    </button>
-                </Link>
-            </div>
+      {showBudgetOverview && (
+        <div>
+          <div className="mb-4 p-4 border border-gray-300 rounded-lg shadow-md">
+            <h2 className="text-lg font-semibold">Total Income</h2>
+            <p className="text-green-600 font-bold">${totalIncome}</p>
+          </div>
+          <div className="mb-4 p-4 border border-gray-300 rounded-lg shadow-md">
+            <h2 className="text-lg font-semibold">Total Expenses</h2>
+            <p className="text-red-600 font-bold">${totalExpenses}</p>
+          </div>
+          <div className="p-4 border border-gray-300 rounded-lg shadow-md">
+            <h2 className="text-lg font-semibold">Remaining Balance</h2>
+            <p className={`font-bold ${remainingBalance >= 0 ? "text-green-600" : "text-red-600"}`}>
+              ${remainingBalance}
+            </p>
+          </div>
         </div>
-    );
+      )}
+
+      <PurchaseInput totalIncome={totalIncome} totalExpenses={totalExpenses} onPurchaseAdded={handleExpenseAdded} />
+
+      <label htmlFor="category" className="block text-sm font-bold mt-4">
+        Filter By Category:
+      </label>
+      <select
+        id="category"
+        className="w-full p-2 border rounded"
+        value={selectedPurchaseCategory}
+        onChange={handleCategoryChange}
+      >
+        {purchaseCategoriesFiltered.map(cat => (
+          <option key={cat} value={cat}>{cat}</option>
+        ))}
+      </select>
+
+      <ul>
+        {filteredExpenses.map(expense => (
+          <li key={expense.id} className="p-4 border-b">
+            {editingExpenseId === expense.id ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={tempEditedExpense?.name || ""}
+                  onChange={e => handleEditedValueChange('name', e.target.value)}
+                  className="w-full p-2 border"
+                />
+                <input
+                  type="number"
+                  value={tempEditedExpense?.amount || 0}
+                  onChange={e => handleEditedValueChange('amount', parseFloat(e.target.value))}
+                  className="w-full p-2 border"
+                />
+                <select
+                  value={tempEditedExpense?.category || ""}
+                  onChange={e => handleEditedValueChange('category', e.target.value)}
+                  className="w-full p-2 border"
+                >
+                  {editablePersonCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+                <input
+                  type="date"
+                  value={formatDateForInput(tempEditedExpense?.timestamp)}
+                  onChange={e => handleEditedValueChange('timestamp', e.target.value)}
+                  className="w-full p-2 border"
+                />
+                <div className="flex justify-end space-x-2">
+                  <button onClick={() => handleSavePurchase(expense.id!)} className="bg-green-500 text-white px-3 py-1 rounded">Save</button>
+                  <button onClick={handleCancelEdit} className="bg-gray-300 px-3 py-1 rounded">Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="font-bold">{expense.name}</div>
+                  <div>Amount: ${expense.amount.toFixed(2)}</div>
+                  <div>Category: {expense.category}</div>
+                  <div>Date: {formatDisplayDate(expense.timestamp)}</div>
+                </div>
+                <div className="flex space-x-2">
+                  <button onClick={() => handleStartEditPurchase(expense)} className="bg-blue-500 text-white px-3 py-1 rounded">Edit</button>
+                  <button onClick={() => handleDeletePurchase(expense.id!)} className="bg-red-500 text-white px-3 py-1 rounded">Delete</button>
+                </div>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-6 text-center">
+        <Link href="/admin">
+          <button className="px-6 py-3 rounded-md shadow-md bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold">
+            Go to Admin
+          </button>
+        </Link>
+      </div>
+    </div>
+  );
 }
