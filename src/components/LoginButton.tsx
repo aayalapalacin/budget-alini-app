@@ -43,20 +43,16 @@ export default function LoginButton() {
       console.error("Logout error:", error);
     }
   };
-
+console.log("user: ", user?.email, "allowed: ", ALLOWED_EMAIL);
   return (
     <div>
       {user ? (
         <>
-          {user.email === ALLOWED_EMAIL ? (
+          
             <span className="mx-[2rem] text-white bg-gray-700 py-2 px-4 rounded-md">
               Hi, {user.displayName || user.email}
             </span>
-          ) : (
-            <span className="mx-[2rem] text-yellow-500 bg-gray-700 py-2 px-4 rounded-md">
-              Unauthorized User
-            </span>
-          )}
+          
           <button
             className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
             onClick={logout}
