@@ -1,9 +1,10 @@
-// src/components/LoginButton.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { auth, provider } from "@/lib/firebase";
+import { auth, provider } from "@/lib/firebase"; // Make sure firebaseApp is imported
 import { signInWithPopup, signOut } from "firebase/auth";
+
+const ALLOWED_EMAIL = process.env.NEXT_PUBLIC_ALLOWED_EMAIL;
 
 export default function LoginButton() {
   const [user, setUser] = useState<any>(null);
@@ -12,18 +13,24 @@ export default function LoginButton() {
     const unsubscribe = auth.onAuthStateChanged((authUser) => {
       if (authUser) {
         setUser(authUser);
+        if (ALLOWED_EMAIL && authUser.email !== ALLOWED_EMAIL) {
+          signOut(auth);
+          setUser(null);
+          console.error("Unauthorized email");
+          // Optionally, you can redirect the user or display an error message here
+        }
       } else {
         setUser(null);
       }
     });
 
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
 
   const login = async () => {
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      // After successful sign-in, the onAuthStateChanged listener will handle the email check
     } catch (error) {
       console.error("Login error:", error);
     }
@@ -41,9 +48,15 @@ export default function LoginButton() {
     <div>
       {user ? (
         <>
-          <span className="mx-[2rem] text-white bg-gray-700 py-2 px-4 rounded-md">
-            Hi, {user.displayName || user.email}
-          </span>
+          {user.email === ALLOWED_EMAIL ? (
+            <span className="mx-[2rem] text-white bg-gray-700 py-2 px-4 rounded-md">
+              Hi, {user.displayName || user.email}
+            </span>
+          ) : (
+            <span className="mx-[2rem] text-yellow-500 bg-gray-700 py-2 px-4 rounded-md">
+              Unauthorized User
+            </span>
+          )}
           <button
             className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
             onClick={logout}
