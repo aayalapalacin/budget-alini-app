@@ -19,7 +19,7 @@ interface Category {
 
 export default function Admin() {
   const [income, setIncome] = useState<{ alex: string; lina: string }>({ alex: "0", lina: "0" });
-  const [view, setView] = useState<'income' | 'expenses'>('expenses');
+  const [view, setView] = useState<string>('income');
   const [newExpenseName, setNewExpenseName] = useState("");
   const [newExpenseAmount, setNewExpenseAmount] = useState<string>("");
   const [newExpenseCategory, setNewExpenseCategory] = useState("alex"); // Default category
@@ -80,9 +80,7 @@ export default function Admin() {
   };
 
   const handleAddExpense = async () => {
-    console.log("name", newExpenseName)
-    console.log("name", typeof newExpenseAmount)
-    console.log("name", newExpenseCategory)
+    
     const expenseAmountNumber = parseFloat(newExpenseAmount);
     if (!newExpenseName || !newExpenseAmount || !newExpenseCategory) return;
 
@@ -119,9 +117,12 @@ export default function Admin() {
         <button onClick={() => setView('expenses')} className={`px-6 py-3 rounded-md transition-all text-white ${view === 'expenses' ? 'bg-gradient-to-r from-blue-500 to-blue-700' : 'bg-gray-300 text-gray-700'} hover:scale-105`}>
           Expenses
         </button>
+        <button onClick={() => setView('pay out')} className={`px-6 py-3 rounded-md transition-all text-white ${view === 'pay out' ? 'bg-gradient-to-r from-blue-500 to-blue-700' : 'bg-gray-300 text-gray-700'} hover:scale-105`}>
+          Pay out
+        </button>
       </div>
 
-      {view === 'income' ? (
+      {view === 'income' ? 
         <div className="space-y-6">
           <div className="flex flex-col">
             <label className="text-lg font-semibold mb-2">Alex's Income</label>
@@ -144,7 +145,7 @@ export default function Admin() {
             />
           </div>
         </div>
-      ) : (
+      : view === 'expenses' ? (
         <div>
           <div className="space-y-4">
             <div className="flex flex-col">
@@ -190,7 +191,10 @@ export default function Admin() {
           {/* Pass refreshExpenses and categories to ExpenseList */}
           <Expenses shouldRefresh={shouldRefreshExpenses} categories={categories} />
         </div>
-      )}
+      ):(
+        <div>test</div>
+      )
+    }
 
       <div className="mt-6 text-center">
         <Link href="/">
