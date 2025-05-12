@@ -6,6 +6,7 @@ import Link from "next/link";
 import { firestore } from "@/lib/firebase";
 import { collection, getDocs, addDoc } from "firebase/firestore";
 import Expenses from "@/components/ExpenseList";
+import { PayOut } from "@/components/PayOut";
 
 interface Expense {
   title: string;
@@ -192,7 +193,7 @@ export default function Admin() {
           <Expenses shouldRefresh={shouldRefreshExpenses} categories={categories} />
         </div>
       ):(
-        <div>test</div>
+        <PayOut />
       )
     }
 
