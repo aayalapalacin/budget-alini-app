@@ -200,7 +200,7 @@ export const PayOut = () => {
     <p className="text-gray-500">Loading payout information...</p>
   )}
 
-  <div className="mb-6">
+  {/* <div className="mb-6">
     <h3 className="text-lg font-medium mb-2 text-gray-700">Monthly Totals by Category:</h3>
     <ul className="text-gray-600 space-y-1">
       <li>Home: ${totalHome.toFixed(2)}</li>
@@ -210,7 +210,7 @@ export const PayOut = () => {
       <li>Joaquin: ${totalJoaquin.toFixed(2)}</li>
       <li>Lina: ${totalLina.toFixed(2)}</li>
     </ul>
-  </div>
+  </div> */}
 
   <div className="mt-8 border-t pt-6">
     <Chart
