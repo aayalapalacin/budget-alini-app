@@ -107,6 +107,7 @@ export default function Admin() {
     setShouldRefreshExpenses(false);
   };
 
+  const expenseCategories= categories.filter((category)=> !category.name.includes("purchase") )
   return (
     <div className="p-6 max-w-lg mx-auto bg-white min-h-screen text-gray-900 shadow-2xl rounded-xl">
       <h1 className="text-3xl font-bold mb-6 text-center text-blue-700">Admin Panel</h1>
@@ -176,7 +177,7 @@ export default function Admin() {
                 onChange={(e) => setNewExpenseCategory(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {categories.map((category) => (
+                {expenseCategories.map((category) => (
                   <option key={category.name} value={category.name}>
                     {category.name}
                   </option>

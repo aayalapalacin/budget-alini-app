@@ -19,8 +19,10 @@ interface CalculationResult {
 function calculatePayouts(expenses: Expense[]): CalculationResult {
   let linaOwesAlex = 0;
   let alexOwesLina = 0;
-
+console.log(expenses,"expenses")
   expenses.forEach((expense) => {
+
+    
     if (['home', 'gasoline', 'eating out', 'groceries', 'joaquin'].includes(expense.category)) {
       // Split these bills in half
       const halfAmount = expense.amount / 2;
@@ -35,7 +37,7 @@ function calculatePayouts(expenses: Expense[]): CalculationResult {
     } else if (expense.category === 'lina debit') {
       // Alex pays Lina for half the amount
       alexOwesLina += expense.amount / 2;
-    } else if (expense.category === 'lina purchase'){
+    } else if (expense.category === 'lina purchase' || expense.category === 'lina expense'){
       // Lina pays Alex the full amount
       linaOwesAlex += expense.amount;
     }
@@ -48,6 +50,15 @@ function calculatePayouts(expenses: Expense[]): CalculationResult {
 export const PayOut = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [payoutResult, setPayoutResult] = useState<CalculationResult | null>(null);
+
+  const [totalHome, setTotalHome] = useState(0);
+  const [totalGasoline, setTotalGasoline] = useState(0);
+  const [totalEatingOut, setTotalEatingOut] = useState(0);
+  const [totalGroceries, setTotalGroceries] = useState(0);
+  const [totalJoaquin, setTotalJoaquin] = useState(0);
+  const [totalLina, setTotalLina] = useState(0); 
+
+
   const currentDate = new Date();
   const currentMonthYear = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
 
@@ -77,6 +88,67 @@ export const PayOut = () => {
     fetchExpenses();
 }, []);
 
+ useEffect(() => {
+    if (expenses && expenses.length > 0) {
+      // Calculate Payouts (as you already have)
+      const payouts = calculatePayouts(expenses);
+      setPayoutResult(payouts);
+
+      // --- Calculate and set category totals here ---
+      let home = 0;
+      let gasoline = 0;
+      let eatingOut = 0;
+      let groceries = 0;
+      let joaquin = 0;
+      let lina = 0;
+
+      expenses.forEach((expense) => {
+        switch (expense.category) {
+          case 'home expense':
+          case 'home purchase':
+            home += expense.amount;
+            break;
+          case 'gasoline purchase':
+            gasoline += expense.amount;
+            break;
+          case 'eating out purchase':
+            eatingOut += expense.amount;
+            break;
+          case 'groceries purchase':
+            groceries += expense.amount;
+            break;
+          case 'joaquin purchase':
+            joaquin += expense.amount;
+            break;
+          case 'lina purchase':
+            lina += expense.amount;
+            break;
+          // Add other categories if needed
+        }
+      });
+
+      // Update the state variables
+      setTotalHome(home);
+      setTotalGasoline(gasoline);
+      setTotalEatingOut(eatingOut);
+      setTotalGroceries(groceries);
+      setTotalJoaquin(joaquin);
+      setTotalLina(lina);
+
+      // --- End category total calculation ---
+
+    } else {
+        // Reset totals if expenses list is empty (e.g., data hasn't loaded or there are no expenses)
+        setTotalHome(0);
+        setTotalGasoline(0);
+        setTotalEatingOut(0);
+        setTotalGroceries(0);
+        setTotalJoaquin(0);
+        setTotalLina(0);
+        setPayoutResult(null); // Also reset payout result
+    }
+  }, [expenses]); // This effect runs whenever the 'expenses' state changes
+
   useEffect(() => {
     if (expenses && expenses.length > 0) {
       const payouts = calculatePayouts(expenses);
@@ -104,6 +176,15 @@ export const PayOut = () => {
       ) : (
         <p>Loading payout information...</p>
       )}
+      <div>
+          <h3 className="text-lg font-medium mb-2">Monthly Totals by Category:</h3>
+          <p>Home: ${totalHome.toFixed(2)}</p>
+          <p>Gasoline: ${totalGasoline.toFixed(2)}</p>
+          <p>Eating Out: ${totalEatingOut.toFixed(2)}</p>
+          <p>Groceries: ${totalGroceries.toFixed(2)}</p>
+          <p>Joaquin: ${totalJoaquin.toFixed(2)}</p>
+          <p>Lina : ${totalLina.toFixed(2)}</p>
+      </div>
     </div>
   );
 };

@@ -146,6 +146,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
       }));
   };
 
+  const expenseCategories= categories.filter((category)=> !category.name.includes("purchase") )
 
   return (
     <div className="mt-8">
@@ -159,7 +160,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
           className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">All Categories</option>
-          {categories.map((category) => (
+          {expenseCategories.map((category) => (
             <option key={category.id} value={category.name}>
               {category.name}
             </option>
@@ -199,7 +200,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
                           onChange={(e) => handleTempInputChange('category', e.target.value)}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       >
-                        {categories.map((category) => (
+                        {expenseCategories.map((category) => (
                             <option key={category.id} value={category.name}>
                               {category.name}
                             </option>
