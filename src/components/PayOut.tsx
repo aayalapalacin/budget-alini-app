@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs } from "firebase/firestore";
 import { firestore } from "@/lib/firebase";
+import { Chart } from './Chart';
 
 interface Expense {
   id: string;
@@ -19,33 +20,46 @@ interface CalculationResult {
 function calculatePayouts(expenses: Expense[]): CalculationResult {
   let linaOwesAlex = 0;
   let alexOwesLina = 0;
-console.log(expenses,"expenses")
-  expenses.forEach((expense) => {
 
-    
-    if (['home', 'gasoline', 'eating out', 'groceries', 'joaquin'].includes(expense.category)) {
-      // Split these bills in half
-      const halfAmount = expense.amount / 2;
-      if (expense.purchaser === 'alex') {
-        linaOwesAlex += halfAmount;
-      } else if (expense.purchaser === 'lina') {
-        alexOwesLina += halfAmount;
-      }
-    } else if (expense.category === 'alex debit') {
-      // Lina pays Alex for half the amount
-      linaOwesAlex += expense.amount / 2;
-    } else if (expense.category === 'lina debit') {
-      // Alex pays Lina for half the amount
-      alexOwesLina += expense.amount / 2;
-    } else if (expense.category === 'lina purchase' || expense.category === 'lina expense'){
-      // Lina pays Alex the full amount
-      linaOwesAlex += expense.amount;
+  expenses.forEach(expense => {
+    const amount = expense.amount;
+
+    switch (expense.category.toLowerCase()) {
+      case 'home purchase':
+      case 'gasoline purchase':
+      case 'eating out purchase':
+      case 'groceries purchase':
+      case 'joaquin purchase':
+        // Shared expenses, ignored in direct debts
+      linaOwesAlex += amount / 2;
+        break;
+
+      case 'alex expense':
+      case 'lina expense':
+        // Purely personal, ignored in debt calculations
+        break;
+
+      case 'alex debit':
+        // Lina owes Alex half
+        linaOwesAlex += amount / 2;
+        break;
+
+      case 'lina debit':
+        // Alex owes Lina half
+        alexOwesLina += amount / 2;
+        break;
+
+      default:
+        console.warn(`Unhandled category: ${expense.category}`);
     }
-    // We can add more categories and rules here as needed
   });
 
-  return { linaToAlex: parseFloat(linaOwesAlex.toFixed(2)), alexToLina: parseFloat(alexOwesLina.toFixed(2)) };
+  return {
+    linaToAlex: parseFloat(linaOwesAlex.toFixed(2)),
+    alexToLina: parseFloat(alexOwesLina.toFixed(2)),
+  };
 }
+
 
 export const PayOut = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -158,33 +172,59 @@ export const PayOut = () => {
 
   return (
     <div className="bg-white p-6 rounded-md shadow-md">
-      <h2 className="text-xl font-semibold mb-4">{currentMonthYear} Pay Out</h2>
-      {payoutResult ? (
-        <div>
-          {payoutResult.linaToAlex > payoutResult.alexToLina ? (
-            <p className="text-lg">
-              Lina to pay Alex: <span className="font-bold">${(payoutResult.linaToAlex - payoutResult.alexToLina).toFixed(2)}</span>
-            </p>
-          ) : payoutResult.alexToLina > payoutResult.linaToAlex ? (
-            <p className="text-lg">
-              Alex to pay Lina: <span className="font-bold">${(payoutResult.alexToLina - payoutResult.linaToAlex).toFixed(2)}</span>
-            </p>
-          ) : (
-            <p className="text-lg">All settled for this month!</p>
-          )}
-        </div>
+  <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">
+    {currentMonthYear} <span className="text-blue-600">Pay Out</span>
+  </h2>
+
+  {payoutResult ? (
+    <div className="mb-6">
+      {payoutResult.linaToAlex > payoutResult.alexToLina ? (
+        <p className="text-lg">
+          Lina to pay Alex:{" "}
+          <span className="font-bold text-green-600">
+            ${(payoutResult.linaToAlex - payoutResult.alexToLina).toFixed(2)}
+          </span>
+        </p>
+      ) : payoutResult.alexToLina > payoutResult.linaToAlex ? (
+        <p className="text-lg">
+          Alex to pay Lina:{" "}
+          <span className="font-bold text-green-600">
+            ${(payoutResult.alexToLina - payoutResult.linaToAlex).toFixed(2)}
+          </span>
+        </p>
       ) : (
-        <p>Loading payout information...</p>
+        <p className="text-lg text-gray-600">All settled for this month!</p>
       )}
-      <div>
-          <h3 className="text-lg font-medium mb-2">Monthly Totals by Category:</h3>
-          <p>Home: ${totalHome.toFixed(2)}</p>
-          <p>Gasoline: ${totalGasoline.toFixed(2)}</p>
-          <p>Eating Out: ${totalEatingOut.toFixed(2)}</p>
-          <p>Groceries: ${totalGroceries.toFixed(2)}</p>
-          <p>Joaquin: ${totalJoaquin.toFixed(2)}</p>
-          <p>Lina : ${totalLina.toFixed(2)}</p>
-      </div>
     </div>
+  ) : (
+    <p className="text-gray-500">Loading payout information...</p>
+  )}
+
+  <div className="mb-6">
+    <h3 className="text-lg font-medium mb-2 text-gray-700">Monthly Totals by Category:</h3>
+    <ul className="text-gray-600 space-y-1">
+      <li>Home: ${totalHome.toFixed(2)}</li>
+      <li>Gasoline: ${totalGasoline.toFixed(2)}</li>
+      <li>Eating Out: ${totalEatingOut.toFixed(2)}</li>
+      <li>Groceries: ${totalGroceries.toFixed(2)}</li>
+      <li>Joaquin: ${totalJoaquin.toFixed(2)}</li>
+      <li>Lina: ${totalLina.toFixed(2)}</li>
+    </ul>
+  </div>
+
+  <div className="mt-8 border-t pt-6">
+    <Chart
+      totals={{
+        home: totalHome,
+        gasoline: totalGasoline,
+        eatingOut: totalEatingOut,
+        groceries: totalGroceries,
+        joaquin: totalJoaquin,
+        lina: totalLina,
+      }}
+    />
+  </div>
+</div>
+
   );
 };
