@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { auth, provider } from "@/lib/firebase"; // Make sure firebaseApp is imported
+import { auth, provider } from "@/lib/firebase"; 
 import { signInWithPopup, signOut } from "firebase/auth";
 
 const ALLOWED_EMAIL = process.env.NEXT_PUBLIC_ALLOWED_EMAIL;
@@ -17,7 +17,6 @@ export default function LoginButton() {
           signOut(auth);
           setUser(null);
           console.error("Unauthorized email");
-          // Optionally, you can redirect the user or display an error message here
         }
       } else {
         setUser(null);
@@ -30,7 +29,6 @@ export default function LoginButton() {
   const login = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
-      // After successful sign-in, the onAuthStateChanged listener will handle the email check
     } catch (error) {
       console.error("Login error:", error);
     }
@@ -43,7 +41,6 @@ export default function LoginButton() {
       console.error("Logout error:", error);
     }
   };
-console.log("user: ", user?.email, "allowed: ", ALLOWED_EMAIL);
   return (
     <div>
       {user ? (

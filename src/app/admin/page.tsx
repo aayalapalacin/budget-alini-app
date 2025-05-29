@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { firestore } from "@/lib/firebase";
-import { collection, getDocs, addDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, doc } from "firebase/firestore";
 import Expenses from "@/components/ExpenseList";
 import { PayOut } from "@/components/PayOut";
 
@@ -26,6 +26,12 @@ export default function Admin() {
   const [newExpenseCategory, setNewExpenseCategory] = useState("alex"); // Default category
   const [categories, setCategories] = useState<Category[]>([]);
 
+  const [isEditingIncome, setIsEditingIncome] = useState(false);
+  const [originalIncome, setOriginalIncome] = useState<{ alex: string; lina: string }>({ alex: "0", lina: "0" });
+  const [alexDocId, setAlexDocId] = useState<string | null>(null); // To store Alex's Firebase doc ID
+  const [linaDocId, setLinaDocId] = useState<string | null>(null); // To store Lina's Firebase doc ID
+
+
   const [shouldRefreshExpenses, setShouldRefreshExpenses] = useState(false);
 
 
@@ -40,9 +46,12 @@ export default function Admin() {
 
         usersSnapshot.forEach((doc) => {
           const userData = doc.data();
+           console.log(doc.id,"userData")
           if (userData.name === "Alex") {
+            setAlexDocId(doc.id)
             alexIncome = userData.income ? userData.income.toString() : "0";
           } else if (userData.name === "Lina") {
+            setLinaDocId(doc.id)
             linaIncome = userData.income ? userData.income.toString() : "0";
           }
         });
@@ -77,8 +86,54 @@ export default function Admin() {
   }, []);
 
   const handleIncomeChange = (name: "alex" | "lina", value: string) => {
-    setIncome((prev) => ({ ...prev, [name]: value }));
+    // Only allow numeric input for income
+    if (/^\d*\.?\d*$/.test(value) || value === '') {
+      setIncome((prev) => ({ ...prev, [name]: value }));
+    }
   };
+
+  const handleEditIncome = () => {
+    setOriginalIncome(income); // Save current income to original before editing
+    setIsEditingIncome(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIncome(originalIncome); // Revert to original income
+    setIsEditingIncome(false);
+  };
+
+  const handleSubmitIncome = async () => {
+    try {
+      // Update Alex's income
+      if (alexDocId) {
+        const alexRef = doc(firestore, 'users', alexDocId);
+        await updateDoc(alexRef, {
+          income: parseFloat(income.alex || '0'), // Convert to number, default to 0 if empty
+        });
+      } else {
+        console.warn("Alex's document ID not found. Cannot update income.");
+        // Optionally, add a new user document if not found
+      }
+
+      // Update Lina's income
+      if (linaDocId) {
+        const linaRef = doc(firestore, 'users', linaDocId);
+        await updateDoc(linaRef, {
+          income: parseFloat(income.lina || '0'), // Convert to number, default to 0 if empty
+        });
+      } else {
+        console.warn("Lina's document ID not found. Cannot update income.");
+        // Optionally, add a new user document if not found
+      }
+
+      console.log("Incomes updated successfully!");
+      setIsEditingIncome(false); // Exit edit mode
+      setOriginalIncome(income); // Update original income to the new submitted values
+    } catch (error) {
+      console.error("Error updating incomes:", error);
+    }
+  };
+
 
   const handleAddExpense = async () => {
     
@@ -124,30 +179,64 @@ export default function Admin() {
         </button>
       </div>
 
-      {view === 'income' ? 
+      {view === 'income' ?
         <div className="space-y-6">
           <div className="flex flex-col">
             <label className="text-lg font-semibold mb-2">Alex's Income</label>
-            <input
-              type="text"
-              value={income.alex}
-              onChange={(e) => handleIncomeChange("alex", e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter Alex's income"
-            />
+            {isEditingIncome ? (
+              <input
+                type="text"
+                value={income.alex}
+                onChange={(e) => handleIncomeChange("alex", e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter Alex's income"
+              />
+            ) : (
+              <p className="text-2xl font-bold text-gray-700 p-3 bg-gray-100 rounded-md">${parseFloat(income.alex).toFixed(2)}</p>
+            )}
           </div>
           <div className="flex flex-col">
             <label className="text-lg font-semibold mb-2">Lina's Income</label>
-            <input
-              type="text"
-              value={income.lina}
-              onChange={(e) => handleIncomeChange("lina", e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter Lina's income"
-            />
+            {isEditingIncome ? (
+              <input
+                type="text"
+                value={income.lina}
+                onChange={(e) => handleIncomeChange("lina", e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter Lina's income"
+              />
+            ) : (
+              <p className="text-2xl font-bold text-gray-700 p-3 bg-gray-100 rounded-md">${parseFloat(income.lina).toFixed(2)}</p>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            {isEditingIncome ? (
+              <>
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-5 py-2 bg-gray-400 text-white rounded-md shadow-sm hover:bg-gray-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitIncome}
+                  className="px-5 py-2 bg-green-500 text-white rounded-md shadow-sm hover:bg-green-600 transition-colors"
+                >
+                  Submit
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleEditIncome}
+                className="px-5 py-2 bg-blue-500 text-white rounded-md shadow-sm hover:bg-blue-600 transition-colors"
+              >
+                Edit
+              </button>
+            )}
           </div>
         </div>
-      : view === 'expenses' ? (
+        : view === 'expenses' ? (
         <div>
           <div className="space-y-4">
             <div className="flex flex-col">
