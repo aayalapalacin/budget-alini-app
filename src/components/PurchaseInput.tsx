@@ -10,7 +10,7 @@ interface PurchaseInputProps {
 
 const PurchaseInput: React.FC<PurchaseInputProps> = ({ totalIncome, totalExpenses, onPurchaseAdded }) => {
   const [name, setName] = useState('');
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState(''); // Keep as string for input
   const [category, setCategory] = useState('alex');
   const [date, setDate] = useState(() => {
     const today = new Date();
@@ -20,14 +20,19 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({ totalIncome, totalExpense
   const categories = ['alex', 'lina', 'home', 'joaquin', 'gasoline', 'groceries'];
 
   const handleAddPurchase = () => {
-    if (!name || !amount || isNaN(Number(amount))) {
+    // Validate amount: ensure it's a valid number and not empty
+    const parsedAmount = parseFloat(amount);
+    if (!name || isNaN(parsedAmount)) {
       alert('Please enter a name and a valid amount.');
       return;
     }
 
     const parsedDate = date ? new Date(date) : new Date(); // fallback to now if something's wrong
-    onPurchaseAdded(name, Number(amount), `${category} purchase`, parsedDate);
+    
+    // Pass the parsed number to the parent
+    onPurchaseAdded(name, parsedAmount, `${category} purchase`, parsedDate);
 
+    // Reset form fields
     setName('');
     setAmount('');
     setCategory('alex');
@@ -35,13 +40,18 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({ totalIncome, totalExpense
   };
 
   const remainingBalance = totalIncome - totalExpenses;
+
+  // Function to format currency
+  const formatCurrency = (value: number) => {
+    return value.toFixed(2); // Always format to 2 decimal places
+  };
+
   const balanceColorClass = remainingBalance >= 0 ? "text-green-600" : "text-red-600";
 
   return (
     <div className="mt-6 p-4 border border-gray-300 rounded-lg shadow-md">
       <h2 className="text-lg font-semibold mb-4">Add Purchase</h2>
     
-
       <div className="mb-4">
         <label htmlFor="purchase-name" className="block text-sm font-bold mb-2">Name:</label>
         <input
@@ -57,11 +67,12 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({ totalIncome, totalExpense
       <div className="mb-4">
         <label htmlFor="amount" className="block text-sm font-bold mb-2">Amount:</label>
         <input
-          type="number"
+          type="number" // Use type="number" to get browser's numeric input features
           id="amount"
           value={amount}
           onChange={e => setAmount(e.target.value)}
-          placeholder="Enter amount"
+          placeholder="Enter amount (e.g., 2.50)"
+          step="0.01" // Important: Allows decimal steps in the input
           className="w-full p-2 border rounded"
         />
       </div>
@@ -93,7 +104,7 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({ totalIncome, totalExpense
       <div className="mb-4 p-4 border border-gray-300 rounded-lg shadow-md">
         <h2 className="text-lg font-semibold">Remaining Balance</h2>
         <p className={`font-bold ${balanceColorClass}`}>
-          ${remainingBalance}
+          ${formatCurrency(remainingBalance)} {/* Apply formatting here */}
         </p>
       </div>
 
