@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { fetchCategories } from "@/assets/fetch";
+import { Category } from "@/assets/types";
+
 
 interface PurchaseInputProps {
   totalIncome: number;
@@ -22,20 +25,22 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({
 }) => {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState(""); // Keep as string for input
-  const [category, setCategory] = useState("alex");
+  const [category, setCategory] = useState<string>("alex");
+  const [categories, setCategories] = useState<Category[]>([]);
+
   const [date, setDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split("T")[0]; // Format: YYYY-MM-DD
   });
 
-  const categories = [
-    "alex",
-    "lina",
-    "home",
-    "joaquin",
-    "gasoline",
-    "groceries",
-  ];
+  // const categories = [
+  //   "alex",
+  //   "lina",
+  //   "home",
+  //   "joaquin",
+  //   "gasoline",
+  //   "groceries",
+  // ];
 
   const handleAddPurchase = () => {
     // Validate amount: ensure it's a valid number and not empty
@@ -66,6 +71,17 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({
 
   const balanceColorClass =
     remainingBalance >= 0 ? "text-green-600" : "text-red-600";
+    useEffect(   () =>{
+      const getPurchaseCategories = async ()=>{
+
+        const allCategories :Category[] = await fetchCategories(setCategories)
+        const purchaseCategories :Category[] = allCategories.filter((cat)=> cat.name.includes("purchase"))
+        setCategories(purchaseCategories);
+      }
+      getPurchaseCategories()
+    },[])
+    
+  
 
   return (
     <div className="mt-6 p-4 border border-gray-300 rounded-lg shadow-md">
@@ -111,7 +127,7 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({
           className="w-full p-2 border rounded"
         >
           {categories.map((cat) => (
-            <option key={cat} value={cat}>{`${cat} yo`}</option>
+            <option key={cat.id} value={cat.name}>{`${cat.name} yo`}</option>
           ))}
         </select>
       </div>

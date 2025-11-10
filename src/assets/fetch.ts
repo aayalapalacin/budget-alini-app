@@ -40,8 +40,10 @@ export const fetchExpenses = async (  setter: React.Dispatch<React.SetStateActio
         });
 
         setter(categoryList);
+        return categoryList;
       } catch (error) {
         console.error("Error fetching categories:", error);
+        return []
       }
     };
       
