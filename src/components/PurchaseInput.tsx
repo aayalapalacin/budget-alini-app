@@ -25,7 +25,7 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({
 }) => {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState(""); // Keep as string for input
-  const [category, setCategory] = useState<string>("alex");
+  const [category, setCategory] = useState<Category>({id:"0",name:""});
   const [categories, setCategories] = useState<Category[]>([]);
 
   const [date, setDate] = useState(() => {
@@ -58,7 +58,7 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({
     // Reset form fields
     setName("");
     setAmount("");
-    setCategory("alex");
+    setCategory({id:"0",name:""});
     setDate(new Date().toISOString().split("T")[0]);
   };
 
@@ -77,6 +77,7 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({
         const allCategories :Category[] = await fetchCategories(setCategories)
         const purchaseCategories :Category[] = allCategories.filter((cat)=> cat.name.includes("purchase"))
         setCategories(purchaseCategories);
+        setCategory(purchaseCategories[0])
       }
       getPurchaseCategories()
     },[])
@@ -122,12 +123,12 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({
         </label>
         <select
           id="category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          value={category.name}
+          onChange={(e) => setCategory({id:"0",name:e.target.value})}
           className="w-full p-2 border rounded"
         >
           {categories.map((cat) => (
-            <option key={cat.id} value={cat.name}>{`${cat.name} yo`}</option>
+            <option key={cat.id} value={cat.name}>{`${cat.name} `}</option>
           ))}
         </select>
       </div>
