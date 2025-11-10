@@ -30,7 +30,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
   // --- Editing Logic ---
 
   const startEditing = (expense: Expense) => {
-      setEditingExpenseId(expense.id);
+      setEditingExpenseId(expense.id ? expense.id : "");
       // Initialize temporary state with current expense data
       setTempEditedExpense({
           name: expense.name,
@@ -175,7 +175,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
 
                   <div className="flex space-x-2 justify-end">
                        <button
-                          onClick={() => saveEditing(expense.id)}
+                          onClick={() => saveEditing(expense.id ? expense.id : "")}
                           className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
                        >
                           Save
@@ -204,7 +204,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
                         Edit
                     </button>
                      <button
-                        onClick={() => handleDelete(expense.id)}
+                        onClick={() => handleDelete(expense.id ? expense.id : "")}
                         className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
                     >
                         Delete

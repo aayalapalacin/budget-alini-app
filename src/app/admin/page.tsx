@@ -8,19 +8,11 @@ import { collection, getDocs, addDoc, updateDoc, doc } from "firebase/firestore"
 import Expenses from "@/components/ExpenseList";
 import { PayOut } from "@/components/PayOut";
 import { fetchCategories,fetchIncomes } from "@/assets/fetch";
+import { Category } from "@/assets/types";
 
-interface Expense {
-  title: string;
-  amount: number;
-}
-
-interface Category {
-  id: string;
-  name: string;
-}
 
 export default function Admin() {
-  const [income, setIncome] = useState<{ alex: string; lina: string }>({ alex: "0", lina: "0" });
+  const [income, setIncome] = useState<{ alex: number; lina: number }>({ alex: 0, lina: 0 });
   const [view, setView] = useState<string>('income');
   const [newExpenseName, setNewExpenseName] = useState("");
   const [newExpenseAmount, setNewExpenseAmount] = useState<string>("");
@@ -28,7 +20,7 @@ export default function Admin() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   const [isEditingIncome, setIsEditingIncome] = useState(false);
-  const [originalIncome, setOriginalIncome] = useState<{ alex: string; lina: string }>({ alex: "0", lina: "0" });
+  const [originalIncome, setOriginalIncome] = useState<{ alex: number; lina: number }>({ alex: 0, lina: 0 });
   const [alexDocId, setAlexDocId] = useState<string | null>(null); // To store Alex's Firebase doc ID
   const [linaDocId, setLinaDocId] = useState<string | null>(null); // To store Lina's Firebase doc ID
 
@@ -67,7 +59,7 @@ export default function Admin() {
       if (alexDocId) {
         const alexRef = doc(firestore, 'users', alexDocId);
         await updateDoc(alexRef, {
-          income: parseFloat(income.alex || '0'), // Convert to number, default to 0 if empty
+          income: income.alex || 0, // Convert to number, default to 0 if empty
         });
       } else {
         console.warn("Alex's document ID not found. Cannot update income.");
@@ -78,7 +70,7 @@ export default function Admin() {
       if (linaDocId) {
         const linaRef = doc(firestore, 'users', linaDocId);
         await updateDoc(linaRef, {
-          income: parseFloat(income.lina || '0'), // Convert to number, default to 0 if empty
+          income: income.lina || 0, // Convert to number, default to 0 if empty
         });
       } else {
         console.warn("Lina's document ID not found. Cannot update income.");
@@ -151,7 +143,7 @@ export default function Admin() {
                 placeholder="Enter Alex's income"
               />
             ) : (
-              <p className="text-2xl font-bold text-gray-700 p-3 bg-gray-100 rounded-md">${parseFloat(income.alex).toFixed(2)}</p>
+              <p className="text-2xl font-bold text-gray-700 p-3 bg-gray-100 rounded-md">${income.alex.toFixed(2)}</p>
             )}
           </div>
           <div className="flex flex-col">
@@ -165,7 +157,7 @@ export default function Admin() {
                 placeholder="Enter Lina's income"
               />
             ) : (
-              <p className="text-2xl font-bold text-gray-700 p-3 bg-gray-100 rounded-md">${parseFloat(income.lina).toFixed(2)}</p>
+              <p className="text-2xl font-bold text-gray-700 p-3 bg-gray-100 rounded-md">${income.lina.toFixed(2)}</p>
             )}
           </div>
 

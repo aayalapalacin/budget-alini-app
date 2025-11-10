@@ -17,15 +17,10 @@ import {
 } from "firebase/firestore";
 import Overview from "@/components/Overview";
 import PurchaseView from "@/components/PurchaseView";
+import { Category, Expense } from "@/assets/types";
+import { fetchCategories, fetchExpenses, fetchIncomes } from "@/assets/fetch";
 
-interface Expense {
-  id?: string;
-  name: string;
-  amount: number;
-  category: string;
-  timestamp?: Date;
-  isEditing?: boolean;
-}
+
 
 function formatDateForInput(date?: Date): string {
   if (!date) return "";
@@ -42,6 +37,8 @@ function formatDisplayDate(date?: Date): string {
 export default function Home() {
   const [income, setIncome] = useState({ alex: 0, lina: 0 });
   const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [alexDocId, setAlexDocId] = useState<string | null>(null); // To store Alex's Firebase doc ID
+  const [linaDocId, setLinaDocId] = useState<string | null>(null); // To store Lina's Firebase doc ID
   const [selectedPurchaseCategory, setSelectedPurchaseCategory] =
     useState("all purchase");
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
@@ -50,48 +47,23 @@ export default function Home() {
   const [activeView, setActiveView] = useState<
     "overview" | "purchase" | "admin" | null
   >(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [editablePersonCategories, setEditablePersonCategories] = useState<string[]>([]);
 
-  const editablePersonCategories = ["alex purchase", "lina purchase"];
 
   useEffect(() => {
-    const fetchAppData = async () => {
-      const usersCollection = collection(firestore, "users");
-      const usersSnapshot = await getDocs(usersCollection);
-      let alexIncome = 0,
-        linaIncome = 0;
+    
 
-      usersSnapshot.forEach((doc) => {
-        const user = doc.data();
-        if (user.name === "Alex") alexIncome = user.income ?? 0;
-        else if (user.name === "Lina") linaIncome = user.income ?? 0;
-      });
+    fetchExpenses(setExpenses)
+    fetchIncomes( setAlexDocId,setLinaDocId,setIncome)
+     const getPurchaseCategories = async ()=>{
 
-      setIncome({ alex: alexIncome, lina: linaIncome });
-
-      const expensesCollection = collection(firestore, "expenses");
-      const expensesSnapshot = await getDocs(expensesCollection);
-      const list = expensesSnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const timestamp =
-          data.timestamp instanceof Timestamp
-            ? data.timestamp.toDate()
-            : undefined;
-        return {
-          id: doc.id,
-          name: data.name,
-          amount: data.amount,
-          category: data.category,
-          timestamp,
-        };
-      });
-
-      list.sort(
-        (a, b) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0)
-      );
-      setExpenses(list);
-    };
-
-    fetchAppData();
+        const allCategories :Category[] = await fetchCategories(setCategories)
+        const purchaseCategories :Category[] = allCategories.filter((cat)=> cat.name.includes("purchase"))
+        const purchaseCatNames = purchaseCategories.map((item)=> item.name)
+        setEditablePersonCategories(purchaseCatNames);
+      }
+      getPurchaseCategories()
   }, []);
 
   const totalIncome = income.alex + income.lina;
@@ -135,18 +107,8 @@ export default function Home() {
     setExpenses(updatedList);
   };
 
-  const purchaseCategories = [
-    "alex",
-    "lina",
-    "home",
-    "joaquin",
-    "gasoline",
-    "groceries",
-    "all",
-  ];
-  const purchaseCategoriesFiltered = purchaseCategories.map(
-    (cat) => `${cat} purchase`
-  );
+ 
+
   const purchaseExpenses = expenses.filter((exp) =>
     exp.category.toLowerCase().includes("purchase")
   );
@@ -299,7 +261,7 @@ export default function Home() {
 
           <PurchaseView
             selectedPurchaseCategory={selectedPurchaseCategory}
-            purchaseCategoriesFiltered={purchaseCategoriesFiltered}
+            purchaseCategoriesFiltered={[...editablePersonCategories,"all purchase"]}
             filteredExpenses={filteredExpenses}
             editablePersonCategories={editablePersonCategories}
             editingExpenseId={editingExpenseId}
