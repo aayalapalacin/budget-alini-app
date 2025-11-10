@@ -111,7 +111,7 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({
           className="w-full p-2 border rounded"
         >
           {categories.map((cat) => (
-            <option key={cat} value={cat}>{`${cat} purchase`}</option>
+            <option key={cat} value={cat}>{`${cat} yo`}</option>
           ))}
         </select>
       </div>

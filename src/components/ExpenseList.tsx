@@ -4,18 +4,8 @@
 import { useState, useEffect } from "react";
 import { firestore } from "@/lib/firebase";
 import { collection, getDocs, updateDoc, doc, deleteDoc } from "firebase/firestore";
-
-interface Expense {
-  id: string;
-  name: string;
-  amount: number;
-  category: string;
-}
-
-interface Category {
-  id: string;
-  name: string;
-}
+import { Category, Expense } from "@/assets/types";
+import { fetchExpenses } from "@/assets/fetch";
 
 interface ExpensesProps {
   shouldRefresh: boolean;
@@ -33,33 +23,8 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
   // Fetch expenses whenever the component mounts, selected category changes,
   // or shouldRefresh changes
   useEffect(() => {
-    const fetchExpenses = async () => {
-      try {
-        const expensesCollection = collection(firestore, 'expenses');
-        const expensesSnapshot = await getDocs(expensesCollection);
-
-        const expensesList = expensesSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name || '',
-            amount: data.amount || 0,
-            category: data.category || ''
-          } as Expense;
-        });
-
-        // Apply filter *after* fetching all data if filtering locally
-        // (Note: For large datasets, consider Firestore queries instead of client-side filtering)
-        const filteredExpenses = selectedCategory === 'all'
-          ? expensesList
-          : expensesList.filter(expense => expense.category === selectedCategory);
-
-        setExpenses(filteredExpenses);
-      } catch (error) {
-        console.error("Error fetching expenses:", error);
-      }
-    };
-    fetchExpenses();
+    fetchExpenses(setExpenses);
+    
   }, [selectedCategory, shouldRefresh]); // Depend on selectedCategory and shouldRefresh
 
   // --- Editing Logic ---
