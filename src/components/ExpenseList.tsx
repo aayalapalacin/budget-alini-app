@@ -112,7 +112,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
   };
 
   const expenseCategories= categories.filter((category)=> !category.name.includes("purchase") )
-
+  const expenseNotPurchases= expenses.filter((expenseData)=> !expenseData.category.includes("purchase") )
   return (
     <div className="mt-8">
       <h2 className="text-2xl font-semibold mb-4 text-center text-blue-700">Expense List</h2>
@@ -135,7 +135,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
     <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
 
       <ul className="space-y-4">
-        {expenses.map((expense) => (
+        {expenseNotPurchases.map((expense) => (
           <li key={expense.id} className="p-4 border border-gray-200 rounded-md shadow-sm bg-gray-50">
             {editingExpenseId === expense.id ? (
               // Render edit form
