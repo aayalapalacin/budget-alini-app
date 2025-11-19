@@ -53,7 +53,7 @@ const PurchaseInput: React.FC<PurchaseInputProps> = ({
     const parsedDate = date ? new Date(date) : new Date(); // fallback to now if something's wrong
 
     // Pass the parsed number to the parent
-    onPurchaseAdded(name, parsedAmount, `${category} purchase`, parsedDate);
+    onPurchaseAdded(name, parsedAmount, category.name , parsedDate);
 
     // Reset form fields
     setName("");

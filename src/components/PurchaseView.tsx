@@ -96,9 +96,9 @@ const PurchaseView: React.FC<PurchaseViewProps> = ({
           ) : (
             <div className="flex justify-between items-center">
               <div>
-                <div className="font-bold">{expense.name}</div>
+                <div className="font-bold">{expense.name} </div>
                 <div>Amount: ${expense.amount.toFixed(2)}</div>
-                <div>Category: {expense.category}</div>
+                <div>Category: {expense.category} </div>
                 <div>Date: {formatDisplayDate(expense.timestamp)}</div>
               </div>
               <div className="flex space-x-2">

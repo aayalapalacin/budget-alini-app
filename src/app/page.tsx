@@ -65,7 +65,6 @@ export default function Home() {
       }
       getPurchaseCategories()
   }, []);
-
   const totalIncome = income.alex + income.lina;
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const remainingBalance = totalIncome - totalExpenses;
@@ -152,6 +151,7 @@ export default function Home() {
   };
 
   const handleSavePurchase = async (id: string) => {
+  
     if (!id || !tempEditedExpense) return;
     await updateDoc(doc(firestore, "expenses", id), {
       name: tempEditedExpense.name,
