@@ -18,8 +18,11 @@ interface CalculationResult {
 }
 
 function calculatePayouts(expenses: Expense[]): CalculationResult {
+  const dentalInsurance = 24;
+  const healthInsurance = 394
+  const insuranceCost = (dentalInsurance + healthInsurance)/2
   let linaOwesAlex = 0;
-  let alexOwesLina = 0;
+  let alexOwesLina = insuranceCost;
 
   expenses.forEach(expense => {
     const amount = expense.amount;
