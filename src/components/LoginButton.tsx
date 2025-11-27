@@ -18,6 +18,7 @@ export default function LoginButton() {
           setUser(null);
         } else {
           setUser(authUser);
+          localStorage.setItem("user","true")
         }
       } else {
         setUser(null);
@@ -43,6 +44,7 @@ export default function LoginButton() {
   const logout = async () => {
     try {
       await signOut(auth);
+      localStorage.removeItem("user")
     } catch (error) {
       console.error("Logout error:", error);
     }

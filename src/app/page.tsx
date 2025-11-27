@@ -218,10 +218,13 @@ export default function Home() {
     }
   };
 
+  const user = localStorage.getItem("user");
+
   return (
     <div className="p-6 max-w-lg mx-auto min-h-screen text-gray-900 bg-white shadow-xl rounded-lg">
       <h1 className="text-2xl font-bold mb-6 text-center">Budget Dashboard</h1>
-
+      {user ? 
+      
       <div className="flex justify-center gap-4 mb-6">
         <button
           onClick={() => setActiveView("overview")}
@@ -240,7 +243,8 @@ export default function Home() {
             Go to Admin
           </button>
         </Link>
-      </div>
+      </div>:"Login to View Content"
+    }
 
       {activeView === "overview" && (
         <Overview
