@@ -49,7 +49,8 @@ export default function Home() {
   >(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [editablePersonCategories, setEditablePersonCategories] = useState<string[]>([]);
-
+  const [user, setUser] = useState<string | null>(null);
+  
 
   useEffect(() => {
     
@@ -64,6 +65,12 @@ export default function Home() {
         setEditablePersonCategories(purchaseCatNames);
       }
       getPurchaseCategories()
+      
+      const localUser =localStorage.getItem("user");
+      if(localUser){
+        setUser(localUser)
+      }  
+
   }, []);
   const totalIncome = income.alex + income.lina;
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
@@ -218,7 +225,6 @@ export default function Home() {
     }
   };
 
-  const user = localStorage.getItem("user");
 
   return (
     <div className="p-6 max-w-lg mx-auto min-h-screen text-gray-900 bg-white shadow-xl rounded-lg">
