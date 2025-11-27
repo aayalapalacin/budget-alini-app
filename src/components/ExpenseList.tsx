@@ -113,6 +113,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
 
   const expenseCategories= categories.filter((category)=> !category.name.includes("purchase") )
   const expenseNotPurchases= expenses.filter((expenseData)=> !expenseData.category.includes("purchase") )
+  const filteredNonPurchaseExpenses = selectedCategory == "all" ? expenseNotPurchases : expenseNotPurchases.filter((expense)=> expense.category == selectedCategory  )
   return (
     <div className="mt-8">
       <h2 className="text-2xl font-semibold mb-4 text-center text-blue-700">Expense List</h2>
@@ -121,13 +122,15 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
         <label className="text-lg font-semibold mb-2 block">Filter by Category</label>
         <select
           value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
+          onChange={(e) => {
+            setSelectedCategory(e.target.value)
+          }}
           className="w-full p-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">All Categories</option>
           {expenseCategories.map((category) => (
             <option key={category.id} value={category.name}>
-              {category.name}
+              {category.name} 
             </option>
           ))}
         </select>
@@ -135,7 +138,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
     <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
 
       <ul className="space-y-4">
-        {expenseNotPurchases.map((expense) => (
+        {filteredNonPurchaseExpenses.map((expense) => (
           <li key={expense.id} className="p-4 border border-gray-200 rounded-md shadow-sm bg-gray-50">
             {editingExpenseId === expense.id ? (
               // Render edit form
@@ -192,7 +195,7 @@ const Expenses: React.FC<ExpensesProps> = ({ shouldRefresh, categories }) => {
               // Render display view
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="font-semibold">{expense.name}</p>
+                  <p className="font-semibold">{expense.name} </p>
                   <p className="text-gray-700">${expense.amount.toFixed(2)}</p>
                   <p className="text-gray-600 text-sm">Category: {expense.category}</p>
                 </div>
