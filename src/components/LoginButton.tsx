@@ -12,11 +12,12 @@ export default function LoginButton() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((authUser) => {
       if (authUser) {
-        setUser(authUser);
         if (ALLOWED_EMAIL && authUser.email !== ALLOWED_EMAIL) {
+          alert("Unauthorized email. Please use the correct account.");
           signOut(auth);
           setUser(null);
-          console.error("Unauthorized email");
+        } else {
+          setUser(authUser);
         }
       } else {
         setUser(null);
@@ -29,6 +30,11 @@ export default function LoginButton() {
   const login = async () => {
     try {
       const result = await signInWithPopup(auth, provider);
+      if (ALLOWED_EMAIL && result.user.email !== ALLOWED_EMAIL) {
+        alert("Unauthorized email. Please use the correct account.");
+        await signOut(auth);
+        setUser(null);
+      }
     } catch (error) {
       console.error("Login error:", error);
     }
@@ -41,19 +47,14 @@ export default function LoginButton() {
       console.error("Logout error:", error);
     }
   };
+
   return (
     <div>
       {user ? (
         <>
-          {user.email === ALLOWED_EMAIL ? (
-            <span className="mx-[2rem] text-white bg-gray-700 py-2 px-4 rounded-md">
-              Hi, {user.displayName || user.email}
-            </span>
-          ) : (
-            <span className="mx-[2rem] text-yellow-500 bg-gray-700 py-2 px-4 rounded-md">
-              Unauthorized User
-            </span>
-          )}
+          <span className="mx-[2rem] text-white bg-gray-700 py-2 px-4 rounded-md">
+            Hi, {user.displayName || user.email}
+          </span>
           <button
             className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
             onClick={logout}
