@@ -19,11 +19,11 @@ interface CalculationResult {
 
 function calculatePayouts(expenses: Expense[]): CalculationResult {
   const dentalInsurance = 24;
-  const healthInsurance = 394
+  const healthInsurance = 384
   const insuranceCost = (dentalInsurance + healthInsurance)/2
   let linaOwesAlex = 0;
   let alexOwesLina = insuranceCost;
-
+console.log("Expenses: ",expenses)
   expenses.forEach(expense => {
     const amount = expense.amount;
 
@@ -34,13 +34,18 @@ function calculatePayouts(expenses: Expense[]): CalculationResult {
       case 'groceries purchase':
       case 'joaquin purchase':
         // Shared expenses, ignored in direct debts
-      linaOwesAlex += amount / 2;
+         linaOwesAlex += amount / 2;
         break;
 
       case 'alex expense':
-      case 'lina expense':
-        // Purely personal, ignored in debt calculations
+        // Alex’s personal expense → no debt adjustment
         break;
+
+      case 'lina expense':
+        // Lina’s personal expense → she owes Alex the full amount
+        linaOwesAlex += amount;
+        break;
+
 
       case 'alex debit':
         // Lina owes Alex half
@@ -55,6 +60,8 @@ function calculatePayouts(expenses: Expense[]): CalculationResult {
       default:
         console.warn(`Unhandled category: ${expense.category}`);
     }
+    console.log("alex to Lina: ", alexOwesLina)
+    console.log("lina to alex: ", linaOwesAlex)
   });
 
   return {
@@ -74,6 +81,7 @@ export const PayOut = () => {
   const [totalGroceries, setTotalGroceries] = useState(0);
   const [totalJoaquin, setTotalJoaquin] = useState(0);
   const [totalLina, setTotalLina] = useState(0); 
+  const [totalAlex, setTotalAlex] = useState(0); 
 
 
   const currentDate = new Date();
@@ -118,6 +126,7 @@ export const PayOut = () => {
       let groceries = 0;
       let joaquin = 0;
       let lina = 0;
+      let alex = 0;
 
       expenses.forEach((expense) => {
         switch (expense.category) {
@@ -140,6 +149,9 @@ export const PayOut = () => {
           case 'lina purchase':
             lina += expense.amount;
             break;
+          case 'alex purchase':
+            alex += expense.amount;
+            break;
           // Add other categories if needed
         }
       });
@@ -151,6 +163,7 @@ export const PayOut = () => {
       setTotalGroceries(groceries);
       setTotalJoaquin(joaquin);
       setTotalLina(lina);
+      setTotalAlex(alex);
 
       // --- End category total calculation ---
 
@@ -162,6 +175,7 @@ export const PayOut = () => {
         setTotalGroceries(0);
         setTotalJoaquin(0);
         setTotalLina(0);
+        setTotalAlex(0);
         setPayoutResult(null); // Also reset payout result
     }
   }, [expenses]); // This effect runs whenever the 'expenses' state changes
@@ -224,6 +238,7 @@ export const PayOut = () => {
         groceries: totalGroceries,
         joaquin: totalJoaquin,
         lina: totalLina,
+        alex: totalAlex,
       }}
     />
   </div>

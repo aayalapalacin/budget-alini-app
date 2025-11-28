@@ -45,6 +45,7 @@ interface Totals {
   groceries: number;
   joaquin: number;
   lina: number;
+  alex: number;
 }
 
 interface ChartProps {
@@ -52,7 +53,7 @@ interface ChartProps {
 }
 
 export const Chart: React.FC<ChartProps> = ({ totals }) => {
-  const labels = ['Home', 'Gasoline', 'Eating Out', 'Groceries', 'Joaquin', 'Lina'];
+  const labels = ['Home', 'Gasoline', 'Eating Out', 'Groceries', 'Joaquin', 'Lina','Alex'];
 
   const data = {
     labels,
@@ -66,6 +67,7 @@ export const Chart: React.FC<ChartProps> = ({ totals }) => {
           totals.groceries,
           totals.joaquin,
           totals.lina,
+          totals.alex,
         ],
         backgroundColor: [
           'rgba(255, 99, 132, 0.6)',    // Home
@@ -74,6 +76,7 @@ export const Chart: React.FC<ChartProps> = ({ totals }) => {
           'rgba(75, 192, 192, 0.6)',    // Groceries
           'rgba(153, 102, 255, 0.6)',   // Joaquin
           'rgba(255, 159, 64, 0.6)',    // Lina
+          'rgba(0, 255, 98, 0.6)',    // Alex
         ],
         borderColor: [
           'rgba(255, 99, 132, 1)',
@@ -82,6 +85,7 @@ export const Chart: React.FC<ChartProps> = ({ totals }) => {
           'rgba(75, 192, 192, 1)',
           'rgba(153, 102, 255, 1)',
           'rgba(255, 159, 64, 1)',
+          'rgba(0, 145, 2, 1)',
         ],
         borderWidth: 1,
       },

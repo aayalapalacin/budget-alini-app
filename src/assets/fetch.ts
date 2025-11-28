@@ -67,7 +67,6 @@ export const fetchExpenses = async (  setter: React.Dispatch<React.SetStateActio
 
         usersSnapshot.forEach((doc) => {
           const userData = doc.data();
-           console.log(doc.id,"userData")
           if (userData.name === "Alex") {
             setAlexDocId(doc.id)
             alexIncome = userData.income ? userData.income : 0;
